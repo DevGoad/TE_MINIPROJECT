@@ -1,0 +1,20 @@
+SEM 6 PROJECT/       <-- Your main project folder
+│
+├── main.py               <-- Your Main app
+├── report_generator.py   <-- The AI logic (LLM: gemini-2.5-flash)
+├── interpretations.py    <-- Your rule book logic
+├── index.html            <-- Frontend
+├── .env                  <-- Your API Keys
+└── firo_b_rules.pdf      <-- PLACE THE PDF HERE
+
+***Libraries & resources*** (PASTABLE COMMANDS)
+pip install uvicorn
+pip install -U google-genai python-dotenv
+
+
+***How to  run***
+Step 1: Navigate to the folder in terminal
+Step 2: python -m uvicorn main:app --reload
+(wait for the app to start)
+Step 3: Run the index.html file
+
