@@ -15,11 +15,7 @@
             padding: 20px;
         }
 
-        h1,
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-        }
+        h1, h2 { text-align: center; color: #2c3e50; }
 
         .card {
             background: white;
@@ -42,11 +38,7 @@
             display: block;
         }
 
-        .options-container {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
+        .options-container { display: flex; gap: 15px; flex-wrap: wrap; }
 
         .option-label {
             cursor: pointer;
@@ -60,59 +52,35 @@
             transition: 0.2s;
         }
 
-        .option-label:hover {
-            background: #eef;
-            border-color: #aaf;
-        }
+        .option-label:hover { background: #eef; border-color: #aaf; }
+        input[type="radio"]:checked+span { font-weight: bold; color: #2980b9; }
 
-        input[type="radio"]:checked+span {
-            font-weight: bold;
-            color: #2980b9;
-        }
-
-        button#submit-btn {
-            width: 100%;
+        button {
             padding: 15px;
-            background-color: #27ae60;
-            color: white;
             border: none;
             font-size: 1.2em;
             border-radius: 5px;
             cursor: pointer;
             transition: 0.3s;
-        }
-
-        button#submit-btn:hover {
-            background-color: #219150;
-        }
-
-        /* Result Table Styles */
-        #results-area {
-            display: none;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #34495e;
             color: white;
         }
 
-        .total-row {
-            background-color: #ecf0f1;
-            font-weight: bold;
-        }
+        button#submit-btn { width: 100%; background-color: #27ae60; }
+        button#submit-btn:hover { background-color: #219150; }
+        
+        button#download-btn { background-color: #8e44ad; width: 48%; margin-top: 20px;}
+        button#download-btn:hover { background-color: #732d91; }
+        
+        button#restart-btn { background-color: #7f8c8d; width: 48%; margin-top: 20px;}
+        button#restart-btn:hover { background-color: #636e72; }
+
+        #results-area { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #34495e; color: white; }
+        .total-row { background-color: #ecf0f1; font-weight: bold; }
+        
+        .action-buttons { display: flex; justify-content: space-between; }
     </style>
 </head>
 
@@ -127,7 +95,7 @@
                 <p>Loading questions from server...</p>
             </div>
             <br>
-            <button type="button" id="submit-btn" onclick="submitForm()">Submit Assessment</button>
+            <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">Submit Assessment</button>
         </form>
     </div>
 
@@ -143,52 +111,60 @@
                     <th>Row Total</th>
                 </tr>
             </thead>
-            <tbody>
-            </tbody>
+            <tbody></tbody>
         </table>
+        
         <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #3498db; border-radius: 4px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">Psychological Analysis</h3>
+            <h3 style="color: #2c3e50; margin-top: 0;">AI Psychological Analysis</h3>
             <div id="ai-report-content" style="line-height: 1.6; color: #444;">
                 <p>Generating detailed analysis with AI... please wait...</p>
             </div>
         </div>
 
         <h3 style="text-align: center; margin-top: 20px;">Grand Total: <span id="grand-total"></span></h3>
-        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px;">Start Over</button>
+        
+        <div class="action-buttons">
+            <button id="download-btn" onclick="downloadReport()">Download Official Report</button>
+            <button id="restart-btn" onclick="location.reload()">Start Over</button>
+        </div>
     </div>
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
+        let currentResultData = null; 
 
-        // Scale definitions based on your file
         const SCALES = {
             "A": ["Never", "Rarely", "Occasionally", "Sometimes", "Often", "Usually"],
             "B": ["Nobody", "1 or 2 people", "A few people", "Some people", "Many people", "Most people"]
         };
 
-        // 1. Fetch Questions on Load
         async function loadQuestions() {
             try {
                 const response = await fetch(`${API_URL}/questions`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const questions = await response.json();
                 renderQuestions(questions);
+                document.getElementById('submit-btn').style.display = 'block'; // Show button once loaded
             } catch (error) {
-                document.getElementById('questions-container').innerHTML = `<p style="color:red">Error connecting to server. Is main.py running?</p>`;
-                console.error(error);
+                console.error("Fetch Error:", error);
+                document.getElementById('questions-container').innerHTML = `
+                    <div style="background:#fee; padding:15px; border-left:4px solid #e74c3c;">
+                        <h3 style="color:#c0392b; margin-top:0;">Failed to connect to the backend API</h3>
+                        <p style="color:#333;">Please ensure your Python FastAPI server is running in your terminal:</p>
+                        <code style="background:#fff; padding:5px; border:1px solid #ddd; display:block;">uvicorn main:app --reload</code>
+                        <p style="color:#7f8c8d; font-size:0.9em; margin-bottom:0;">Technical details: ${error.message}</p>
+                    </div>`;
             }
         }
 
-        // 2. Render Questions into HTML
         function renderQuestions(questions) {
             const container = document.getElementById('questions-container');
             container.innerHTML = "";
-
-            questions.forEach((q, index) => {
+            questions.forEach((q) => {
                 const scaleLabels = SCALES[q.type];
-
                 let optionsHTML = "";
                 scaleLabels.forEach((label, i) => {
-                    // i is 0-5. We send this index to backend.
                     optionsHTML += `
                         <label class="option-label">
                             <input type="radio" name="q${q.id}" value="${i}" required>
@@ -196,35 +172,31 @@
                         </label>
                     `;
                 });
-
-                const qHTML = `
+                container.innerHTML += `
                     <div class="question-item">
                         <span class="question-text">${q.id}. ${q.text}</span>
-                        <div class="options-container">
-                            ${optionsHTML}
-                        </div>
+                        <div class="options-container">${optionsHTML}</div>
                     </div>
                 `;
-                container.innerHTML += qHTML;
             });
         }
 
-        // 3. Handle Submission
         async function submitForm() {
             const form = document.getElementById('questionnaire-form');
+            if(!form.checkValidity()) {
+                alert("Please answer all questions before submitting.");
+                return;
+            }
+
             const formData = new FormData(form);
             const answers = {};
 
-            // Check if all answered
-            // (Skipped for simpler debugging, but ideally you check size of answers keys)
-
             for (let [key, value] of formData.entries()) {
-                // key is "q1", "q2"... we need just the ID
-                const id = key.replace('q', '');
-                answers[id] = parseInt(value);
+                answers[key.replace('q', '')] = parseInt(value);
             }
 
-            // Send to Backend
+            document.getElementById('submit-btn').innerText = "Analyzing... Please wait";
+
             try {
                 const response = await fetch(`${API_URL}/evaluate`, {
                     method: "POST",
@@ -232,64 +204,154 @@
                     body: JSON.stringify({ answers: answers })
                 });
 
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
                 const result = await response.json();
+                currentResultData = result; 
                 showResults(result);
             } catch (error) {
-                alert("Error calculating score. Check console.");
+                alert("Error calculating score. Make sure your server is running and the API key is valid.");
                 console.error(error);
+                document.getElementById('submit-btn').innerText = "Submit Assessment";
             }
         }
 
-        // 4. Display Results
         function showResults(data) {
             document.getElementById('quiz-area').style.display = 'none';
             document.getElementById('results-area').style.display = 'block';
 
             const tbody = document.querySelector('#score-table tbody');
-            const m = data.matrix;
-            const r = data.row_totals;
-            const c = data.col_totals;
-            const l = data.labels; // Get the labels
+            const m = data.matrix, r = data.row_totals, c = data.col_totals;
 
             tbody.innerHTML = `
-                <tr>
-                    <td><strong>Expressed (e)</strong></td>
-                    <td>${m[0][0]}</td>
-                    <td>${m[0][1]}</td>
-                    <td>${m[0][2]}</td>
-                    <td><strong>${r[0]}</strong></td>
-                </tr>
-                <tr>
-                    <td><strong>Wanted (w)</strong></td>
-                    <td>${m[1][0]}</td>
-                    <td>${m[1][1]}</td>
-                    <td>${m[1][2]}</td>
-                    <td><strong>${r[1]}</strong></td>
-                </tr>
-                <tr class="total-row">
-                    <td><strong>Total</strong></td>
-                    <td><strong>${c[0]}</strong></td>
-                    <td><strong>${c[1]}</strong></td>
-                    <td><strong>${c[2]}</strong></td>
-                    <td></td>
-                </tr>
-                <tr style="background-color: #e8f6f3;">
-                    <td><strong>Type</strong></td>
-                    <td style="font-size:0.9em; color:#2c3e50;"><em>${l.inclusion}</em></td>
-                    <td style="font-size:0.9em; color:#2c3e50;"><em>${l.control}</em></td>
-                    <td style="font-size:0.9em; color:#2c3e50;"><em>${l.affection}</em></td>
-                    <td></td>
-                </tr>
+                <tr><td><strong>Expressed</strong></td><td>${m[0][0]}</td><td>${m[0][1]}</td><td>${m[0][2]}</td><td><strong>${r[0]}</strong></td></tr>
+                <tr><td><strong>Wanted</strong></td><td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td><td><strong>${r[1]}</strong></td></tr>
+                <tr class="total-row"><td><strong>Total</strong></td><td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td><td><strong>${c[2]}</strong></td><td></td></tr>
             `;
-const formattedReport = data.ai_report.replace(/\n/g, '<br>');
-            document.getElementById('ai-report-content').innerHTML = formattedReport;
             
+            let formattedReport = data.ai_report
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                .replace(/\*(.*?)\*/g, '<em>$1</em>') 
+                .replace(/\n\s*\*\s/g, '<br>• ') 
+                .replace(/\n/g, '<br>'); 
+
+            document.getElementById('ai-report-content').innerHTML = formattedReport;
             document.getElementById('grand-total').textContent = data.grand_total;
+        }
+
+        function downloadReport() {
+            if (!currentResultData) return;
+
+            const d = currentResultData;
+            const m = d.matrix, r = d.row_totals, c = d.col_totals;
+            const dateStr = new Date().toLocaleDateString();
+            
+            let formattedReport = d.ai_report
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                .replace(/\n\s*\*\s/g, '<br><br>• ') 
+                .replace(/\n/g, '<br>');
+
+            // Safely build the HTML string bypassing any DOM parser logic
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>FIRO-B Report<\x2Ftitle>
+                <style>
+                    body { font-family: 'Arial', sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 40px; background: #fff;}
+                    .header { border-bottom: 3px solid #662D91; padding-bottom: 20px; margin-bottom: 40px; }
+                    .header h1 { color: #8e44ad; font-size: 2.5em; margin: 0;}
+                    .header p { color: #777; margin: 5px 0 0 0; }
+                    
+                    h2 { color: #A5C400; font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px;}
+                    
+                    .grid-container {
+                        display: grid;
+                        grid-template-columns: 80px 1fr 1fr 1fr 1.2fr;
+                        gap: 15px;
+                        text-align: center;
+                        margin-top: 30px;
+                    }
+                    
+                    .box { background: #f9f9f9; border: 1px solid #ccc; border-radius: 4px; padding: 20px; font-size: 2.5em; font-weight: bold;}
+                    .label-top { font-weight: bold; font-size: 1.2em; align-self: end; padding-bottom: 10px;}
+                    .label-side { font-weight: bold; font-size: 1.2em; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); justify-self: center;}
+                    
+                    .inc-color { color: #0073CF; }
+                    .con-color { color: #F37021; }
+                    .aff-color { color: #00B140; }
+                    .exp-color { color: #A5C400; }
+                    .wan-color { color: #662D91; }
+                    .tot-color { color: #E31837; }
+                    
+                    .box-header { font-size: 0.35em; color: #fff; padding: 8px; margin: -20px -20px 20px -20px; border-radius: 3px 3px 0 0; text-transform: uppercase;}
+                    
+                    .bg-inc { background-color: #0073CF; }
+                    .bg-con { background-color: #F37021; }
+                    .bg-aff { background-color: #00B140; }
+                    .bg-exp { background-color: #A5C400; }
+                    .bg-wan { background-color: #662D91; }
+                    .bg-tot { background-color: #E31837; }
+
+                    .report-body { margin-top: 50px; font-size: 1.1em; color: #444;}
+                <\x2Fstyle>
+            <\x2Fhead>
+            <body>
+                <div class="header">
+                    <h1>FIRO-B&reg; Interpretive Report<\x2Fh1>
+                    <p>Generated on ${dateStr}<\x2Fp>
+                <\x2Fdiv>
+
+                <h2>YOUR FIRO-B&reg; RESULTS<\x2Fh2>
+                
+                <div class="grid-container">
+                    <div><\x2Fdiv>
+                    <div class="label-top inc-color">INCLUSION<\x2Fdiv>
+                    <div class="label-top con-color">CONTROL<\x2Fdiv>
+                    <div class="label-top aff-color">AFFECTION<\x2Fdiv>
+                    <div><\x2Fdiv>
+
+                    <div class="label-side exp-color">EXPRESSED<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-inc">Expressed Inclusion<\x2Fdiv>${m[0][0]}<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-con">Expressed Control<\x2Fdiv>${m[0][1]}<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-aff">Expressed Affection<\x2Fdiv>${m[0][2]}<\x2Fdiv>
+                    <div class="box" style="background:#f1f4d9;"><div class="box-header bg-exp">Total Expressed Behavior<\x2Fdiv>${r[0]}<\x2Fdiv>
+
+                    <div class="label-side wan-color">WANTED<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-inc">Wanted Inclusion<\x2Fdiv>${m[1][0]}<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-con">Wanted Control<\x2Fdiv>${m[1][1]}<\x2Fdiv>
+                    <div class="box"><div class="box-header bg-aff">Wanted Affection<\x2Fdiv>${m[1][2]}<\x2Fdiv>
+                    <div class="box" style="background:#ebdced;"><div class="box-header bg-wan">Total Wanted Behavior<\x2Fdiv>${r[1]}<\x2Fdiv>
+
+                    <div><\x2Fdiv>
+                    <div class="box" style="background:#d9edfc;"><div class="box-header bg-inc">Total Need for Inclusion<\x2Fdiv>${c[0]}<\x2Fdiv>
+                    <div class="box" style="background:#fcead9;"><div class="box-header bg-con">Total Need for Control<\x2Fdiv>${c[1]}<\x2Fdiv>
+                    <div class="box" style="background:#d9f5e3;"><div class="box-header bg-aff">Total Need for Affection<\x2Fdiv>${c[2]}<\x2Fdiv>
+                    <div class="box" style="background:#fce1e5;"><div class="box-header bg-tot">Overall Interpersonal Needs<\x2Fdiv>${d.grand_total}<\x2Fdiv>
+                <\x2Fdiv>
+
+                <h2>INTERPRETATION & ANALYSIS<\x2Fh2>
+                <div class="report-body">
+                    ${formattedReport}
+                <\x2Fdiv>
+            <\x2Fbody>
+            <\x2Fhtml>
+            `;
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `FIRO_B_Report_${dateStr.replace(/\//g, '-')}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Initialize
         loadQuestions();
-    </script>
-</body>
-
+        </script>
+    </body>
 </html>
