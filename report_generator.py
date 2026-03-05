@@ -58,30 +58,58 @@ def generate_psychometric_report(scores: dict, labels: dict) -> str:
 
     # Construct the user-specific prompt with the Management Student constraints
     user_data = f"""
-    Design a student report that helps management students:
-    • Understand their behaviour in group and work settings
-    • Identify specialization fit (HR, Marketing, Finance, Operations, IT/Analytics, General Management)
-    • Anticipate team compatibility, challenges, and stress points
-    • Plan their PGDM journey (academics, internships, skills)
-    
-    **User Data:**
-    - Inclusion: {labels['inclusion']} (Exp: {scores['matrix'][0][0]}, Want: {scores['matrix'][1][0]})
-    - Control: {labels['control']} (Exp: {scores['matrix'][0][1]}, Want: {scores['matrix'][1][1]})
-    - Affection: {labels['affection']} (Exp: {scores['matrix'][0][2]}, Want: {scores['matrix'][1][2]})
+    You are an expert career coach and psychometrician for management students. 
+    Using the attached FIRO-B Rule Book, design a student-facing report based on the user's scores.
 
-    *** Report Output Structure (MANDATORY SECTIONS)
-    1. My Behavioural Snapshot
-    • 4-5 bullet points summarising how the student typically behaves at work/in teams
-    • Written in first person (“I tend to…”, “I usually…”)
+    **Goal:** Help the student understand their behavior in group and work settings, and anticipate team compatibility and challenges.
+    **Tone:** Developmental (not predictive or clinical labeling), student-friendly, and focused on behavior-to-environment mapping. Treat the scores as a tool for self-awareness, not a rigid box.
 
-    2. How I Function in Groups
-    • Role in teams
-    • Comfort with leadership and participation
-    • Response to group dynamics  
+    **User's FIRO-B Data:**
+    - Inclusion: {labels['inclusion']} (Expressed: {scores['matrix'][0][0]}, Wanted: {scores['matrix'][1][0]}), Total Need: {scores['col_totals'][0]}
+    - Control: {labels['control']} (Expressed: {scores['matrix'][0][1]}, Wanted: {scores['matrix'][1][1]}), Total Need: {scores['col_totals'][1]}
+    - Affection: {labels['affection']} (Expressed: {scores['matrix'][0][2]}, Wanted: {scores['matrix'][1][2]}), Total Need: {scores['col_totals'][2]}
+    - Total Expressed Behavior: {scores['row_totals'][0]}
+    - Total Wanted Behavior: {scores['row_totals'][1]}
+    - Overall Interpersonal Need: {scores['grand_total']}
 
-    3. People I Work Best With
-    • Description of team members the student feels comfortable with
-    • Description of people or styles that may cause friction
+    **CRITICAL INSTRUCTIONS:**
+    You MUST output EXACTLY 7 sections, separated by the exact text "--- PAGE X ---". Do not add introductory or concluding remarks outside of this structure. Strictly follow the bullet point counts.
+
+    --- PAGE 1 ---
+    **1. Total Expressed and Wanted Behaviors**
+    - Provide 4 to 5 bullet points explaining what their Total Expressed vs. Total Wanted behavior scores mean about how they initiate vs. wait for interactions.
+    - **Your Total Needs:** Provide 2 to 3 bullet points explaining their Overall Interpersonal Need score and what it says about their general reliance on human interaction.
+
+    --- PAGE 2 ---
+    **2. Your Patterns of Need Fulfillment for Inclusion**
+    - First line MUST be: "Your results on Expressed Inclusion ({scores['matrix'][0][0]}) and Wanted Inclusion ({scores['matrix'][1][0]}) suggest the following pattern of behaviors:"
+    - Provide AT LEAST 5 bullet points describing their inclusion profile ({labels['inclusion']}) based on the rule book. Focus on how they associate with others.
+
+    --- PAGE 3 ---
+    **3. Your Patterns of Need Fulfillment for Control**
+    - First line MUST be: "Your results on Expressed Control ({scores['matrix'][0][1]}) and Wanted Control ({scores['matrix'][1][1]}) suggest the following pattern of behaviors:"
+    - Provide AT LEAST 5 bullet points describing their control profile ({labels['control']}) based on the rule book. Focus on leadership, responsibility, and decision-making.
+
+    --- PAGE 4 ---
+    **4. Your Patterns of Need Fulfillment for Affection**
+    - First line MUST be: "Your results on Expressed Affection ({scores['matrix'][0][2]}) and Wanted Affection ({scores['matrix'][1][2]}) suggest the following pattern of behaviors:"
+    - Provide AT LEAST 5 bullet points describing their affection profile ({labels['affection']}) based on the rule book. Focus on emotional ties, warmth, and closeness.
+
+    --- PAGE 5 ---
+    **5. My Behavioural Snapshot**
+    - Provide exactly 4 to 5 bullet points summarizing how the student typically behaves at work or in project teams.
+    - **CRITICAL:** This section MUST be written entirely in the first-person perspective (e.g., "I tend to...", "I usually...", "I prefer...").
+
+    --- PAGE 6 ---
+    **6. How I Function in Groups**
+    - **Role in teams:** Exactly 3 bullet points explaining their natural fit in a group.
+    - **Comfort with leadership and participation:** Exactly 3 bullet points detailing how they handle authority and sharing ideas.
+    - **Response to group dynamics:** Exactly 3 bullet points explaining how they react to conflict, consensus, or pressure.
+
+    --- PAGE 7 ---
+    **7. People I Work Best With**
+    - **Who I work best with:** Exactly 3 bullet points describing the traits, styles, or behaviors of team members they will feel most comfortable and productive with.
+    - **Potential friction points:** Exactly 3 bullet points describing the types of people or management styles that may cause them stress, annoyance, or conflict.
     """
     
     # System instruction defines the persona

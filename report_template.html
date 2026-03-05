@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Base Styles to mimic the Sample PDF */
+        body { font-family: 'Arial', sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; background: #fff;}
+        .page { padding: 40px; page-break-after: always; } /* Forces PDF page breaks */
+        .page:last-child { page-break-after: avoid; }
+        
+        /* Cover Page Styles */
+        .cover-header { border-bottom: 5px solid #662D91; padding-bottom: 20px; margin-bottom: 40px; margin-top: 100px; }
+        .cover-header h1 { color: #8e44ad; font-size: 3.5em; margin: 0; font-weight: bold;}
+        .cover-header h2 { color: #777; font-size: 1.5em; margin: 5px 0 0 0; font-weight: normal; }
+        .cover-details { margin-top: 100px; font-size: 1.2em; color: #555; }
+        .cover-details p { margin: 5px 0; }
+        
+        /* Grid Page Styles */
+        h2.section-title { color: #A5C400; font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0;}
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr 1fr 1.2fr;
+            gap: 15px;
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .box { background: #f9f9f9; border: 1px solid #ccc; border-radius: 4px; padding: 20px; font-size: 3em; font-weight: bold;}
+        .label-top { font-weight: bold; font-size: 1.2em; align-self: end; padding-bottom: 10px;}
+        .label-side { font-weight: bold; font-size: 1.2em; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); justify-self: center;}
+        
+        .inc-color { color: #0073CF; }
+        .con-color { color: #F37021; }
+        .aff-color { color: #00B140; }
+        .exp-color { color: #A5C400; }
+        .wan-color { color: #662D91; }
+        .tot-color { color: #E31837; }
+        
+        .box-header { font-size: 0.30em; color: #fff; padding: 8px; margin: -20px -20px 20px -20px; border-radius: 3px 3px 0 0; text-transform: uppercase; font-weight: bold;}
+        
+        .bg-inc { background-color: #0073CF; }
+        .bg-con { background-color: #F37021; }
+        .bg-aff { background-color: #00B140; }
+        .bg-exp { background-color: #A5C400; }
+        .bg-wan { background-color: #662D91; }
+        .bg-tot { background-color: #E31837; }
+
+        /* AI Report Styles */
+        .report-body { margin-top: 30px; font-size: 1.1em; color: #444; }
+        .report-body h3 { color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .report-body ul { margin-bottom: 20px; }
+        .report-body li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+        <div class="cover-header">
+            <h1>FIRO-B&reg;</h1>
+            <h2>Interpretive Report for Organizations</h2>
+        </div>
+        <div class="cover-details">
+            <p><strong>Report generated on:</strong> {{DATE}}</p>
+            <p><strong>Assessment Type:</strong> Fundamental Interpersonal Relations Orientation-Behavior</p>
+        </div>
+    </div>
+
+    <div class="page">
+        <h2 class="section-title">YOUR FIRO-B&reg; RESULTS</h2>
+        
+        <div class="grid-container">
+            <div></div>
+            <div class="label-top inc-color">INCLUSION</div>
+            <div class="label-top con-color">CONTROL</div>
+            <div class="label-top aff-color">AFFECTION</div>
+            <div></div>
+
+            <div class="label-side exp-color">EXPRESSED</div>
+            <div class="box"><div class="box-header bg-inc">Expressed Inclusion</div>{{E_INC}}</div>
+            <div class="box"><div class="box-header bg-con">Expressed Control</div>{{E_CON}}</div>
+            <div class="box"><div class="box-header bg-aff">Expressed Affection</div>{{E_AFF}}</div>
+            <div class="box" style="background:#f1f4d9;"><div class="box-header bg-exp">Total Expressed Behavior</div>{{T_EXP}}</div>
+
+            <div class="label-side wan-color">WANTED</div>
+            <div class="box"><div class="box-header bg-inc">Wanted Inclusion</div>{{W_INC}}</div>
+            <div class="box"><div class="box-header bg-con">Wanted Control</div>{{W_CON}}</div>
+            <div class="box"><div class="box-header bg-aff">Wanted Affection</div>{{W_AFF}}</div>
+            <div class="box" style="background:#ebdced;"><div class="box-header bg-wan">Total Wanted Behavior</div>{{T_WAN}}</div>
+
+            <div></div>
+            <div class="box" style="background:#d9edfc;"><div class="box-header bg-inc">Total Need for Inclusion</div>{{T_INC}}</div>
+            <div class="box" style="background:#fcead9;"><div class="box-header bg-con">Total Need for Control</div>{{T_CON}}</div>
+            <div class="box" style="background:#d9f5e3;"><div class="box-header bg-aff">Total Need for Affection</div>{{T_AFF}}</div>
+            <div class="box" style="background:#fce1e5;"><div class="box-header bg-tot">Overall Interpersonal Needs</div>{{G_TOT}}</div>
+        </div>
+    </div>
+
+    <div class="page">
+        <h2 class="section-title">INTERPRETATION & ANALYSIS</h2>
+        <div class="report-body">
+            {{AI_REPORT}}
+        </div>
+    </div>
+
+</body>
+</html>
