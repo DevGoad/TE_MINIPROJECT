@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behavior Assessment</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 
     <style>
         body {
@@ -17,27 +18,132 @@
             margin: 0 auto;
             padding: 20px;
         }
-        h1, h2 { text-align: center; color: #2c3e50; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
-        .question-item { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .question-text { font-weight: 600; font-size: 1.1em; margin-bottom: 10px; display: block; }
-        .options-container { display: flex; gap: 15px; flex-wrap: wrap; }
-        .option-label { cursor: pointer; display: flex; align-items: center; gap: 5px; background: #fafafa; padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; transition: 0.2s; }
-        .option-label:hover { background: #eef; border-color: #aaf; }
-        input[type="radio"]:checked+span { font-weight: bold; color: #2980b9; }
-        button { padding: 15px; border: none; font-size: 1.2em; border-radius: 5px; cursor: pointer; transition: 0.3s; color: white; }
-        button#submit-btn { width: 100%; background-color: #27ae60; }
-        button#submit-btn:hover { background-color: #219150; }
-        button#download-btn { background-color: #8e44ad; width: 48%; margin-top: 20px;}
-        button#download-btn:hover { background-color: #732d91; }
-        button#restart-btn { background-color: #7f8c8d; width: 48%; margin-top: 20px;}
-        button#restart-btn:hover { background-color: #636e72; }
-        #results-area { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #34495e; color: white; }
-        .total-row { background-color: #ecf0f1; font-weight: bold; }
-        .action-buttons { display: flex; justify-content: space-between; }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .question-item {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .question-text {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .options-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .option-label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #fafafa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            transition: 0.2s;
+        }
+
+        .option-label:hover {
+            background: #eef;
+            border-color: #aaf;
+        }
+
+        input[type="radio"]:checked+span {
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: white;
+        }
+
+        button#submit-btn {
+            width: 100%;
+            background-color: #27ae60;
+        }
+
+        button#submit-btn:hover {
+            background-color: #219150;
+        }
+
+        button#download-btn {
+            background-color: #8e44ad;
+            width: 48%;
+            margin-top: 20px;
+        }
+
+        button#download-btn:hover {
+            background-color: #732d91;
+        }
+
+        button#restart-btn {
+            background-color: #7f8c8d;
+            width: 48%;
+            margin-top: 20px;
+        }
+
+        button#restart-btn:hover {
+            background-color: #636e72;
+        }
+
+        #results-area {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .total-row {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
     </style>
 </head>
 
@@ -52,7 +158,8 @@
                 <p>Loading questions from server...</p>
             </div>
             <br>
-            <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">Submit Assessment</button>
+            <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">Submit
+                Assessment</button>
         </form>
     </div>
 
@@ -70,16 +177,17 @@
             </thead>
             <tbody></tbody>
         </table>
-        
-        <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #3498db; border-radius: 4px;">
+
+        <div
+            style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #3498db; border-radius: 4px;">
             <h3 style="color: #2c3e50; margin-top: 0;">AI Psychological Analysis</h3>
             <div id="ai-report-content" style="line-height: 1.6; color: #444;"></div>
         </div>
 
         <h3 style="text-align: center; margin-top: 20px;">Grand Total: <span id="grand-total"></span></h3>
-        
+
         <div class="action-buttons">
-            <button id="download-btn" onclick="downloadReport()">Download PDF Report</button>
+            <button id="download-btn" onclick="generateReport()">Download PDF Report</button>
             <button id="restart-btn" onclick="location.reload()">Start Over</button>
         </div>
     </div>
@@ -88,7 +196,8 @@
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
-        let currentResultData = null; 
+        let currentResultData = null;
+        let currentAnswers = null;
 
         const SCALES = {
             "A": ["Never", "Rarely", "Occasionally", "Sometimes", "Often", "Usually"],
@@ -99,10 +208,10 @@
             try {
                 const response = await fetch(`${API_URL}/questions`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
+
                 const questions = await response.json();
                 renderQuestions(questions);
-                document.getElementById('submit-btn').style.display = 'block'; 
+                document.getElementById('submit-btn').style.display = 'block';
             } catch (error) {
                 console.error("Fetch Error:", error);
                 document.getElementById('questions-container').innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
@@ -132,7 +241,7 @@
 
         async function submitForm() {
             const form = document.getElementById('questionnaire-form');
-            if(!form.checkValidity()) {
+            if (!form.checkValidity()) {
                 alert("Please answer all questions before submitting.");
                 return;
             }
@@ -143,6 +252,8 @@
             for (let [key, value] of formData.entries()) {
                 answers[key.replace('q', '')] = parseInt(value);
             }
+
+            currentAnswers = answers;
 
             document.getElementById('submit-btn').innerText = "Analyzing... Please wait";
 
@@ -156,7 +267,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                 const result = await response.json();
-                currentResultData = result; 
+                currentResultData = result;
                 showResults(result);
             } catch (error) {
                 alert("Error calculating score. Check console.");
@@ -188,60 +299,60 @@
                 <tr><td><strong>Wanted</strong></td><td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td><td><strong>${r[1]}</strong></td></tr>
                 <tr class="total-row"><td><strong>Total</strong></td><td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td><td><strong>${c[2]}</strong></td><td></td></tr>
             `;
-            
+
             document.getElementById('ai-report-content').innerHTML = formatAIReport(data.ai_report);
             document.getElementById('grand-total').textContent = data.grand_total;
         }
 
-        async function downloadReport() {
-            if (!currentResultData) return;
+        async function generateReport() {
+            if (!currentAnswers) return;
 
             const btn = document.getElementById('download-btn');
             const originalText = btn.innerText;
             btn.innerText = "Generating PDF...";
             btn.disabled = true;
 
-            const d = currentResultData;
-            const m = d.matrix, r = d.row_totals, c = d.col_totals;
-            
             try {
-                // 1. Fetch the separated HTML template file
-                const response = await fetch('report_template.html');
-                let template = await response.text();
+                // 1. Fetch the fully rendered HTML report from the server
+                const response = await fetch(`${API_URL}/report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ answers: currentAnswers })
+                });
 
-                // 2. Replace placeholders with actual data
-                template = template
-                    .replace('{{DATE}}', new Date().toLocaleDateString())
-                    .replace('{{E_INC}}', m[0][0]).replace('{{E_CON}}', m[0][1]).replace('{{E_AFF}}', m[0][2]).replace('{{T_EXP}}', r[0])
-                    .replace('{{W_INC}}', m[1][0]).replace('{{W_CON}}', m[1][1]).replace('{{W_AFF}}', m[1][2]).replace('{{T_WAN}}', r[1])
-                    .replace('{{T_INC}}', c[0]).replace('{{T_CON}}', c[1]).replace('{{T_AFF}}', c[2])
-                    .replace('{{G_TOT}}', d.grand_total)
-                    .replace('{{AI_REPORT}}', formatAIReport(d.ai_report));
+                if (!response.ok) {
+                    const err = await response.text();
+                    console.error("Report generation failed:", err);
+                    alert("Report generation failed. Check console for details.");
+                    return;
+                }
 
-                // 3. Put it in our hidden div
+                const fullyRenderedHtml = await response.text();
+
+                // 2. Put it in our hidden div
                 const pdfContainer = document.getElementById('pdf-container');
-                pdfContainer.innerHTML = template;
+                pdfContainer.innerHTML = fullyRenderedHtml;
                 pdfContainer.style.display = 'block';
 
-                // 4. Configure html2pdf settings
+                // 3. Configure html2pdf settings
                 const opt = {
-                    margin:       0,
-                    filename:     `FIRO_B_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
-                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                    margin: 0,
+                    filename: `FIRO_B_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
                 };
 
-                // 5. Generate and download PDF
+                // 4. Generate and download PDF
                 await html2pdf().set(opt).from(pdfContainer).save();
 
-                // 6. Cleanup
+                // 5. Cleanup
                 pdfContainer.style.display = 'none';
                 pdfContainer.innerHTML = '';
 
             } catch (err) {
                 console.error("PDF Generation failed:", err);
-                alert("Failed to generate PDF. Make sure report_template.html exists in your folder.");
+                alert("Failed to generate PDF. Make sure the server is running.");
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -252,4 +363,5 @@
         loadQuestions();
     </script>
 </body>
+
 </html>

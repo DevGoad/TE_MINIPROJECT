@@ -3,105 +3,470 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* Base Styles to mimic the Sample PDF */
-        body { font-family: 'Arial', sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; background: #fff;}
-        .page { padding: 40px; page-break-after: always; } /* Forces PDF page breaks */
-        .page:last-child { page-break-after: avoid; }
-        
-        /* Cover Page Styles */
-        .cover-header { border-bottom: 5px solid #662D91; padding-bottom: 20px; margin-bottom: 40px; margin-top: 100px; }
-        .cover-header h1 { color: #8e44ad; font-size: 3.5em; margin: 0; font-weight: bold;}
-        .cover-header h2 { color: #777; font-size: 1.5em; margin: 5px 0 0 0; font-weight: normal; }
-        .cover-details { margin-top: 100px; font-size: 1.2em; color: #555; }
-        .cover-details p { margin: 5px 0; }
-        
-        /* Grid Page Styles */
-        h2.section-title { color: #A5C400; font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0;}
-        
-        .grid-container {
-            display: grid;
-            grid-template-columns: 80px 1fr 1fr 1fr 1.2fr;
-            gap: 15px;
-            text-align: center;
-            margin-top: 30px;
-        }
-        
-        .box { background: #f9f9f9; border: 1px solid #ccc; border-radius: 4px; padding: 20px; font-size: 3em; font-weight: bold;}
-        .label-top { font-weight: bold; font-size: 1.2em; align-self: end; padding-bottom: 10px;}
-        .label-side { font-weight: bold; font-size: 1.2em; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); justify-self: center;}
-        
-        .inc-color { color: #0073CF; }
-        .con-color { color: #F37021; }
-        .aff-color { color: #00B140; }
-        .exp-color { color: #A5C400; }
-        .wan-color { color: #662D91; }
-        .tot-color { color: #E31837; }
-        
-        .box-header { font-size: 0.30em; color: #fff; padding: 8px; margin: -20px -20px 20px -20px; border-radius: 3px 3px 0 0; text-transform: uppercase; font-weight: bold;}
-        
-        .bg-inc { background-color: #0073CF; }
-        .bg-con { background-color: #F37021; }
-        .bg-aff { background-color: #00B140; }
-        .bg-exp { background-color: #A5C400; }
-        .bg-wan { background-color: #662D91; }
-        .bg-tot { background-color: #E31837; }
+        /* ── RESET & BASE ─────────────────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; background: #fff; }
 
-        /* AI Report Styles */
-        .report-body { margin-top: 30px; font-size: 1.1em; color: #444; }
-        .report-body h3 { color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        .report-body ul { margin-bottom: 20px; }
-        .report-body li { margin-bottom: 10px; }
+        /* ── PAGE LAYOUT ──────────────────────────────────────────────── */
+        /*  REMOVED min-height:100vh — that was creating the blank pages   */
+        .page {
+            padding: 40px 50px 50px 50px;
+            page-break-after: always;
+        }
+        .page:last-child { page-break-after: avoid; }
+
+        @media print {
+            @page { margin: 0; size: A4; }
+            .page { padding: 28px 38px; page-break-after: always; }
+        }
+
+        /* ── PAGE HEADER ──────────────────────────────────────────────── */
+        .page-header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 2px solid #662D91;
+            padding-bottom: 7px; margin-bottom: 22px;
+            font-size: 0.78em; color: #777;
+        }
+        .page-header .brand { font-weight: bold; color: #662D91; }
+
+        /* ── COVER PAGE ───────────────────────────────────────────────── */
+        .cover-wrap {
+            display: flex; flex-direction: column;
+            justify-content: flex-end; height: 580px;
+            padding-bottom: 30px;
+        }
+        .cover-title { text-align: center; margin-bottom: 10px; }
+        .cover-title h1 { font-size: 3.2em; color: #8e44ad; font-weight: bold; }
+        .cover-title h2 { font-size: 1.4em; color: #555; font-weight: normal; margin-top: 4px; }
+        .cover-title p  { font-size: 1em; color: #A5C400; font-style: italic; margin-top: 4px; }
+        .cover-rule { border: none; border-top: 4px solid #662D91; margin: 18px 0 22px 0; }
+        .cover-details {
+            border-left: 4px solid #A5C400; padding-left: 18px; font-size: 1.05em; color: #555;
+        }
+        .cover-details p { margin: 6px 0; }
+        .cover-disclaimer {
+            margin-top: 40px; border-top: 1px solid #ddd;
+            padding-top: 12px; color: #aaa; font-size: 0.76em; line-height: 1.5;
+        }
+
+        /* ── SECTION TITLES ───────────────────────────────────────────── */
+        h2.section-title {
+            font-size: 1.55em; margin-bottom: 20px; padding-bottom: 9px;
+            text-transform: uppercase; letter-spacing: 1px;
+            border-bottom: 3px solid; text-align: center;
+        }
+        .t-grid   { color: #A5C400;  border-color: #A5C400;  }
+        .t-total  { color: #662D91;  border-color: #662D91;  }
+        .t-inc    { color: #0073CF;  border-color: #0073CF;  }
+        .t-con    { color: #F37021;  border-color: #F37021;  }
+        .t-aff    { color: #00B140;  border-color: #00B140;  }
+        .t-snap   { color: #8e44ad;  border-color: #8e44ad;  }
+        .t-group  { color: #2c3e50;  border-color: #2c3e50;  }
+        .t-people { color: #E31837;  border-color: #E31837;  }
+
+        /* ── RESULTS GRID ─────────────────────────────────────────────── */
+        .grid-table {
+            width: 100%; border-collapse: separate; border-spacing: 10px;
+        }
+        .grid-table th {
+            font-size: 1.05em; font-weight: bold; padding-bottom: 6px; text-align: center;
+        }
+        /* Fixed vertical text — works in wkhtmltopdf, Chrome, WeasyPrint */
+        .side-label {
+            font-size: 0.8em; font-weight: bold; text-align: center;
+            writing-mode: vertical-lr; transform: rotate(180deg);
+            padding: 4px 2px; white-space: nowrap;
+        }
+        .score-cell {
+            border: 1px solid #ccc; border-radius: 4px;
+            text-align: center; padding: 0 0 16px 0; width: 18%;
+        }
+        .cell-header {
+            color: #fff; font-size: 0.65em; font-weight: bold;
+            text-transform: uppercase; padding: 7px 6px; line-height: 1.3;
+            border-radius: 3px 3px 0 0; margin-bottom: 10px;
+        }
+        .cell-value { font-size: 2.5em; font-weight: bold; color: #333; }
+
+        /* Colour helpers */
+        .bg-inc { background: #0073CF; } .bg-con { background: #F37021; }
+        .bg-aff { background: #00B140; } .bg-exp { background: #A5C400; }
+        .bg-wan { background: #662D91; } .bg-tot { background: #E31837; }
+        .bg-inc-lt { background: #d9edfc; } .bg-con-lt { background: #fcead9; }
+        .bg-aff-lt { background: #d9f5e3; } .bg-exp-lt { background: #f1f4d9; }
+        .bg-wan-lt { background: #ebdced; } .bg-tot-lt { background: #fce1e5; }
+        .c-inc { color: #0073CF; } .c-con { color: #F37021; } .c-aff { color: #00B140; }
+        .c-exp { color: #A5C400; } .c-wan { color: #662D91; } .c-tot { color: #E31837; }
+
+        /* ── MINI SCORE STRIP ─────────────────────────────────────────── */
+        .score-strip {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 22px; align-items: stretch;
+        }
+        .strip-box {
+            border-radius: 6px; overflow: hidden;
+            min-width: 100px; box-shadow: 0 1px 4px rgba(0,0,0,.12); text-align: center;
+        }
+        .strip-label {
+            font-size: 0.6em; color: #fff; padding: 5px 8px;
+            font-weight: bold; text-transform: uppercase; line-height: 1.3;
+        }
+        .strip-value {
+            font-size: 2.1em; font-weight: bold; padding: 6px 14px; background: #f9f9f9;
+        }
+        .strip-text {
+            font-size: 0.72em; padding: 5px 8px; background: #f9f9f9;
+            color: #555; font-style: italic; line-height: 1.3;
+        }
+        .strip-right { margin-left: auto; }
+
+        /* ── AI CONTENT ───────────────────────────────────────────────── */
+        .ai-content { margin-top: 4px; }
+        .ai-content p  { color: #444; font-size: 1.01em; line-height: 1.75; margin-bottom: 12px; }
+        .ai-content ul { padding-left: 22px; margin-bottom: 16px; }
+        .ai-content li { color: #444; font-size: 1.01em; line-height: 1.75; margin-bottom: 8px; }
+        .ai-content h4 {
+            font-size: 1em; font-weight: bold; text-transform: uppercase;
+            letter-spacing: .4px; padding-left: 10px;
+            border-left: 4px solid #ccc; margin: 20px 0 8px 0;
+        }
+        /* Per-page colour for sub-headings */
+        .page-tot  .ai-content h4 { border-left-color: #662D91; color: #662D91; }
+        .page-inc  .ai-content h4 { border-left-color: #0073CF; color: #0073CF; }
+        .page-con  .ai-content h4 { border-left-color: #F37021; color: #F37021; }
+        .page-aff  .ai-content h4 { border-left-color: #00B140; color: #00B140; }
+        .page-snap .ai-content h4 { border-left-color: #8e44ad; color: #8e44ad; }
+        .page-grp  .ai-content h4 { border-left-color: #2c3e50; color: #2c3e50; }
+        .page-ppl  .ai-content h4 { border-left-color: #E31837; color: #E31837; }
+        /* Per-page bullet colour */
+        .page-tot  .ai-content li::marker { color: #662D91; }
+        .page-inc  .ai-content li::marker { color: #0073CF; }
+        .page-con  .ai-content li::marker { color: #F37021; }
+        .page-aff  .ai-content li::marker { color: #00B140; }
+        .page-snap .ai-content li::marker { color: #8e44ad; }
+        .page-grp  .ai-content li::marker { color: #2c3e50; }
+        .page-ppl  .ai-content li::marker { color: #E31837; }
     </style>
 </head>
 <body>
 
-    <div class="page">
-        <div class="cover-header">
+<!-- ══════════════════════════════════════════════════════
+     PAGE 1 — COVER
+     ══════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="cover-wrap">
+        <div class="cover-title">
             <h1>FIRO-B&reg;</h1>
             <h2>Interpretive Report for Organizations</h2>
+            <p>Fundamental Interpersonal Relations Orientation &mdash; Behavior</p>
         </div>
+        <hr class="cover-rule">
         <div class="cover-details">
-            <p><strong>Report generated on:</strong> {{DATE}}</p>
-            <p><strong>Assessment Type:</strong> Fundamental Interpersonal Relations Orientation-Behavior</p>
+            <p><strong>Report Generated:</strong> {{DATE}}</p>
+            <p><strong>Assessment Type:</strong> FIRO-B&reg; Psychometric Assessment</p>
+            <p><strong>Dimensions Measured:</strong> Inclusion &bull; Control &bull; Affection</p>
+            <p><strong>Scores Analysed by:</strong> Gemini AI Psychometrician</p>
+        </div>
+        <div class="cover-disclaimer">
+            This report is generated for personal development purposes only. Results should be
+            used as a tool for self-awareness, not as a definitive judgment of capability,
+            potential, or suitability. All instruments have limitations; avoid making major
+            decisions based on the results of a single instrument alone.
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 2 — FIRO-B RESULTS GRID
+     ══════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span>Your Results</span>
+    </div>
+    <h2 class="section-title t-grid">YOUR FIRO-B&reg; RESULTS</h2>
+
+    <table class="grid-table">
+        <tr>
+            <td style="width:52px;"></td>
+            <th class="c-inc">INCLUSION</th>
+            <th class="c-con">CONTROL</th>
+            <th class="c-aff">AFFECTION</th>
+            <th></th>
+        </tr>
+        <tr>
+            <td><div class="side-label c-exp">EXPRESSED</div></td>
+            <td class="score-cell bg-exp-lt">
+                <div class="cell-header bg-inc">Expressed Inclusion [eI]</div>
+                <div class="cell-value c-inc">{{E_INC}}</div>
+            </td>
+            <td class="score-cell bg-exp-lt">
+                <div class="cell-header bg-con">Expressed Control [eC]</div>
+                <div class="cell-value c-con">{{E_CON}}</div>
+            </td>
+            <td class="score-cell bg-exp-lt">
+                <div class="cell-header bg-aff">Expressed Affection [eA]</div>
+                <div class="cell-value c-aff">{{E_AFF}}</div>
+            </td>
+            <td class="score-cell bg-exp-lt">
+                <div class="cell-header bg-exp">Total Expressed Behavior</div>
+                <div class="cell-value c-exp">{{T_EXP}}</div>
+            </td>
+        </tr>
+        <tr>
+            <td><div class="side-label c-wan">WANTED</div></td>
+            <td class="score-cell bg-wan-lt">
+                <div class="cell-header bg-inc">Wanted Inclusion [wI]</div>
+                <div class="cell-value c-inc">{{W_INC}}</div>
+            </td>
+            <td class="score-cell bg-wan-lt">
+                <div class="cell-header bg-con">Wanted Control [wC]</div>
+                <div class="cell-value c-con">{{W_CON}}</div>
+            </td>
+            <td class="score-cell bg-wan-lt">
+                <div class="cell-header bg-aff">Wanted Affection [wA]</div>
+                <div class="cell-value c-aff">{{W_AFF}}</div>
+            </td>
+            <td class="score-cell bg-wan-lt">
+                <div class="cell-header bg-wan">Total Wanted Behavior</div>
+                <div class="cell-value c-wan">{{T_WAN}}</div>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td class="score-cell bg-inc-lt">
+                <div class="cell-header bg-inc">Total Need for Inclusion</div>
+                <div class="cell-value c-inc">{{T_INC}}</div>
+            </td>
+            <td class="score-cell bg-con-lt">
+                <div class="cell-header bg-con">Total Need for Control</div>
+                <div class="cell-value c-con">{{T_CON}}</div>
+            </td>
+            <td class="score-cell bg-aff-lt">
+                <div class="cell-header bg-aff">Total Need for Affection</div>
+                <div class="cell-value c-aff">{{T_AFF}}</div>
+            </td>
+            <td class="score-cell bg-tot-lt">
+                <div class="cell-header bg-tot">Overall Interpersonal Needs</div>
+                <div class="cell-value c-tot">{{G_TOT}}</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 3 — TOTAL EXPRESSED & WANTED  (AI PAGE 1)
+
+     KEY FIX: mini-strip placeholders are ALL prefixed with
+     STRIP_ so they are UNIQUE from the grid placeholders.
+     JavaScript's str.replace("{{X}}", v) only replaces the
+     FIRST match — the grid placeholder. The STRIP_ names are
+     only ever replaced server-side by fill_html_report().
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-tot">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span>Total Behaviors &amp; Overall Need</span>
+    </div>
+    <h2 class="section-title t-total">TOTAL EXPRESSED &amp; WANTED BEHAVIORS</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#A5C400;">Total Expressed</div>
+            <div class="strip-value c-exp">{{STRIP_T_EXP}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#662D91;">Total Wanted</div>
+            <div class="strip-value c-wan">{{STRIP_T_WAN}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#E31837;">Overall Need</div>
+            <div class="strip-value c-tot">{{STRIP_G_TOT}}</div>
         </div>
     </div>
 
-    <div class="page">
-        <h2 class="section-title">YOUR FIRO-B&reg; RESULTS</h2>
-        
-        <div class="grid-container">
-            <div></div>
-            <div class="label-top inc-color">INCLUSION</div>
-            <div class="label-top con-color">CONTROL</div>
-            <div class="label-top aff-color">AFFECTION</div>
-            <div></div>
+    <div class="ai-content">{{PAGE_1}}</div>
+</div>
 
-            <div class="label-side exp-color">EXPRESSED</div>
-            <div class="box"><div class="box-header bg-inc">Expressed Inclusion</div>{{E_INC}}</div>
-            <div class="box"><div class="box-header bg-con">Expressed Control</div>{{E_CON}}</div>
-            <div class="box"><div class="box-header bg-aff">Expressed Affection</div>{{E_AFF}}</div>
-            <div class="box" style="background:#f1f4d9;"><div class="box-header bg-exp">Total Expressed Behavior</div>{{T_EXP}}</div>
+<!-- ══════════════════════════════════════════════════════
+     PAGE 4 — INCLUSION  (AI PAGE 2)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-inc">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span class="c-inc" style="font-weight:bold;">Inclusion</span>
+    </div>
+    <h2 class="section-title t-inc">PATTERNS OF NEED FULFILLMENT: INCLUSION</h2>
 
-            <div class="label-side wan-color">WANTED</div>
-            <div class="box"><div class="box-header bg-inc">Wanted Inclusion</div>{{W_INC}}</div>
-            <div class="box"><div class="box-header bg-con">Wanted Control</div>{{W_CON}}</div>
-            <div class="box"><div class="box-header bg-aff">Wanted Affection</div>{{W_AFF}}</div>
-            <div class="box" style="background:#ebdced;"><div class="box-header bg-wan">Total Wanted Behavior</div>{{T_WAN}}</div>
-
-            <div></div>
-            <div class="box" style="background:#d9edfc;"><div class="box-header bg-inc">Total Need for Inclusion</div>{{T_INC}}</div>
-            <div class="box" style="background:#fcead9;"><div class="box-header bg-con">Total Need for Control</div>{{T_CON}}</div>
-            <div class="box" style="background:#d9f5e3;"><div class="box-header bg-aff">Total Need for Affection</div>{{T_AFF}}</div>
-            <div class="box" style="background:#fce1e5;"><div class="box-header bg-tot">Overall Interpersonal Needs</div>{{G_TOT}}</div>
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#0073CF;">Expressed Inclusion</div>
+            <div class="strip-value c-inc">{{STRIP_E_INC}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#0073CF;">Wanted Inclusion</div>
+            <div class="strip-value c-inc">{{STRIP_W_INC}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#0073CF;">Total Inclusion</div>
+            <div class="strip-value c-inc">{{STRIP_T_INC}}</div>
+        </div>
+        <div class="strip-box strip-right">
+            <div class="strip-label" style="background:#555;">Profile Label</div>
+            <div class="strip-text">{{INC_LABEL}}</div>
         </div>
     </div>
 
-    <div class="page">
-        <h2 class="section-title">INTERPRETATION & ANALYSIS</h2>
-        <div class="report-body">
-            {{AI_REPORT}}
+    <div class="ai-content">{{PAGE_2}}</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 5 — CONTROL  (AI PAGE 3)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-con">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span class="c-con" style="font-weight:bold;">Control</span>
+    </div>
+    <h2 class="section-title t-con">PATTERNS OF NEED FULFILLMENT: CONTROL</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#F37021;">Expressed Control</div>
+            <div class="strip-value c-con">{{STRIP_E_CON}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#F37021;">Wanted Control</div>
+            <div class="strip-value c-con">{{STRIP_W_CON}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#F37021;">Total Control</div>
+            <div class="strip-value c-con">{{STRIP_T_CON}}</div>
+        </div>
+        <div class="strip-box strip-right">
+            <div class="strip-label" style="background:#555;">Profile Label</div>
+            <div class="strip-text">{{CON_LABEL}}</div>
         </div>
     </div>
+
+    <div class="ai-content">{{PAGE_3}}</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 6 — AFFECTION  (AI PAGE 4)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-aff">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span class="c-aff" style="font-weight:bold;">Affection</span>
+    </div>
+    <h2 class="section-title t-aff">PATTERNS OF NEED FULFILLMENT: AFFECTION</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#00B140;">Expressed Affection</div>
+            <div class="strip-value c-aff">{{STRIP_E_AFF}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#00B140;">Wanted Affection</div>
+            <div class="strip-value c-aff">{{STRIP_W_AFF}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#00B140;">Total Affection</div>
+            <div class="strip-value c-aff">{{STRIP_T_AFF}}</div>
+        </div>
+        <div class="strip-box strip-right">
+            <div class="strip-label" style="background:#555;">Profile Label</div>
+            <div class="strip-text">{{AFF_LABEL}}</div>
+        </div>
+    </div>
+
+    <div class="ai-content">{{PAGE_4}}</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 7 — BEHAVIOURAL SNAPSHOT  (AI PAGE 5)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-snap">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span style="color:#8e44ad; font-weight:bold;">Behavioural Snapshot</span>
+    </div>
+    <h2 class="section-title t-snap">MY BEHAVIOURAL SNAPSHOT</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#0073CF;">Inclusion</div>
+            <div class="strip-value c-inc">{{STRIP_T_INC_2}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#F37021;">Control</div>
+            <div class="strip-value c-con">{{STRIP_T_CON_2}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#00B140;">Affection</div>
+            <div class="strip-value c-aff">{{STRIP_T_AFF_2}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#E31837;">Overall</div>
+            <div class="strip-value c-tot">{{STRIP_G_TOT_2}}</div>
+        </div>
+    </div>
+
+    <div class="ai-content">{{PAGE_5}}</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 8 — HOW I FUNCTION IN GROUPS  (AI PAGE 6)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-grp">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span style="color:#2c3e50; font-weight:bold;">Group Dynamics</span>
+    </div>
+    <h2 class="section-title t-group">HOW I FUNCTION IN GROUPS</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#A5C400;">Total Expressed</div>
+            <div class="strip-value c-exp">{{STRIP_T_EXP_2}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#662D91;">Total Wanted</div>
+            <div class="strip-value c-wan">{{STRIP_T_WAN_2}}</div>
+        </div>
+    </div>
+
+    <div class="ai-content">{{PAGE_6}}</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAGE 9 — PEOPLE I WORK BEST WITH  (AI PAGE 7)
+     ══════════════════════════════════════════════════════ -->
+<div class="page page-ppl">
+    <div class="page-header">
+        <span class="brand">FIRO-B&reg; Interpretive Report for Organizations</span>
+        <span style="color:#E31837; font-weight:bold;">Team Compatibility</span>
+    </div>
+    <h2 class="section-title t-people">PEOPLE I WORK BEST WITH</h2>
+
+    <div class="score-strip">
+        <div class="strip-box">
+            <div class="strip-label" style="background:#0073CF;">Inclusion</div>
+            <div class="strip-value c-inc">{{STRIP_T_INC_3}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#F37021;">Control</div>
+            <div class="strip-value c-con">{{STRIP_T_CON_3}}</div>
+        </div>
+        <div class="strip-box">
+            <div class="strip-label" style="background:#00B140;">Affection</div>
+            <div class="strip-value c-aff">{{STRIP_T_AFF_3}}</div>
+        </div>
+    </div>
+
+    <div class="ai-content">{{PAGE_7}}</div>
+</div>
 
 </body>
 </html>
