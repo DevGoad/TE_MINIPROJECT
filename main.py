@@ -1,12 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 import interpretations
 import report_generator
+import team_analyzer
 
 app = FastAPI()
 
@@ -22,12 +22,21 @@ app.add_middleware(
 TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report_template.html")
 
 
+class UserDetails(BaseModel):
+    name:        str = ""
+    age:         str = ""
+    gender:      str = ""
+    occupation:  str = ""
+    designation: str = ""
+    team_type:   str = ""
+
 class EvaluationRequest(BaseModel):
-    answers: Dict[int, int]
+    answers:      Dict[int, int]
+    user_details: Optional[UserDetails] = None
 
 
 QUESTIONS = [
-    {"id": 1,  "text": "I try to be with people.", "type": "A"},
+    {"id": 1,  "text": "I try to be with people.", "type"   : "A"},
     {"id": 2,  "text": "I let other people decide what to do.", "type": "A"},
     {"id": 3,  "text": "I join social groups.", "type": "A"},
     {"id": 4,  "text": "I try to have close relationships with people.", "type": "A"},
@@ -169,43 +178,89 @@ def get_questions():
 @app.post("/evaluate")
 def evaluate_questionnaire(request: EvaluationRequest):
     """
-    Returns JSON scores + raw AI report text.
-    Used for debugging or if the frontend needs raw data.
+    Single endpoint that does everything in one shot:
+      1. Score the questionnaire
+      2. Call Gemini ONCE to generate the AI narrative (PAGE_1 … PAGE_7)
+      3. Fill the HTML template with scores + AI content
+      4. Return scores (for the inline results table), the raw ai_report
+         (for the inline AI summary panel), AND the fully-rendered
+         rendered_html (so the frontend can open the report immediately
+         without ever calling the server again).
+
+    The /report endpoint has been removed.  Gemini is called exactly
+    once — here — and never again for the same assessment.
     """
+    # Step 1: score
     results = evaluator.evaluate(request.answers)
 
-    # FIX: pass full results dict (was only passing {"matrix": ...})
-    ai_report_text = report_generator.generate_psychometric_report(
-        scores=results,
-        labels=results["labels"]
-    )
-    results["ai_report"] = ai_report_text
-    return results
-
-
-@app.post("/report", response_class=HTMLResponse)
-def generate_report(request: EvaluationRequest):
-    """
-    Returns a fully rendered, print-ready HTML report.
-    ALL placeholders — grid scores, STRIP_ mini-scores, PAGE_N AI content —
-    are replaced server-side by fill_html_report().
-
-    Your frontend should call THIS endpoint instead of /evaluate + manual
-    template replacement. See the README / HOW_TO_CALL_REPORT.md for the
-    exact fetch snippet.
-    """
-    results = evaluator.evaluate(request.answers)
-
+    # Step 2: Gemini — called ONCE, result stored in ai_report_text
     ai_report_text = report_generator.generate_psychometric_report(
         scores=results,
         labels=results["labels"]
     )
 
-    html = report_generator.fill_html_report(
+    # Step 3: fill the static HTML template with scores + AI content
+    rendered_html = report_generator.fill_html_report(
         template_path=TEMPLATE_PATH,
         scores=results,
         labels=results["labels"],
         ai_report_text=ai_report_text,
+        user_details=request.user_details.dict() if request.user_details else None,
     )
 
-    return HTMLResponse(content=html)
+    # Step 4: return everything the frontend needs
+    results["ai_report"]    = ai_report_text   # for the inline summary panel
+    results["rendered_html"] = rendered_html    # for the "open report" button
+    return results
+
+# NOTE: /report endpoint removed.
+# The frontend caches rendered_html from /evaluate and opens it
+# directly as a Blob URL — no second server round-trip, no second
+# Gemini call.
+
+
+# ─────────────────────────────────────────────────────────────
+#  TEAM ANALYSIS ENDPOINT  (new — does not touch any above code)
+# ─────────────────────────────────────────────────────────────
+
+import json as _json
+
+@app.post("/team-analysis")
+async def team_analysis_route(
+    files:     List[UploadFile] = File(...),
+    names:     str = Form("[]"),       # JSON array of member names
+    team_name: str = Form(""),
+    team_type: str = Form(""),
+):
+    """
+    Accepts 2–4 individual rendered HTML report files + metadata.
+    Extracts FIRO-B scores from each file, calls Gemini ONCE with both
+    reference PDFs, and returns a fully-rendered team analysis HTML page.
+    """
+    if not (2 <= len(files) <= 4):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Please upload between 2 and 4 report files.")
+
+    member_names = _json.loads(names) if names else []
+
+    members = []
+    for i, upload in enumerate(files):
+        content = await upload.read()          # raw bytes — PDF
+        name = member_names[i].strip() if i < len(member_names) else ""
+        member_data = team_analyzer.extract_report_data(content, name)
+        members.append(member_data)
+
+    ai_text = team_analyzer.generate_team_analysis(
+        members=members,
+        team_type=team_type,
+        team_name=team_name,
+    )
+
+    rendered = team_analyzer.render_team_report(
+        members=members,
+        team_name=team_name,
+        team_type=team_type,
+        ai_text=ai_text,
+    )
+
+    return {"rendered_html": rendered}

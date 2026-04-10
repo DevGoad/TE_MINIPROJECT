@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behavior Assessment</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-
+    <!-- No html2pdf. No second server call. Report opens from cached HTML. -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -18,350 +14,376 @@
             margin: 0 auto;
             padding: 20px;
         }
-
-        h1,
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-        }
-
+        h1, h2 { text-align: center; color: #2c3e50; }
         .card {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-
         .question-item {
             margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
         }
-
-        .question-text {
-            font-weight: 600;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .options-container {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
+        .question-text { font-weight: 600; font-size: 1.1em; margin-bottom: 10px; display: block; }
+        .options-container { display: flex; gap: 15px; flex-wrap: wrap; }
         .option-label {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #fafafa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            transition: 0.2s;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            background: #fafafa; padding: 8px 12px; border-radius: 4px;
+            border: 1px solid #ddd; transition: 0.2s;
         }
-
-        .option-label:hover {
-            background: #eef;
-            border-color: #aaf;
-        }
-
-        input[type="radio"]:checked+span {
-            font-weight: bold;
-            color: #2980b9;
-        }
-
+        .option-label:hover { background: #eef; border-color: #aaf; }
+        input[type="radio"]:checked + span { font-weight: bold; color: #2980b9; }
         button {
-            padding: 15px;
-            border: none;
-            font-size: 1.2em;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.3s;
-            color: white;
+            padding: 15px; border: none; font-size: 1.2em;
+            border-radius: 5px; cursor: pointer; transition: 0.3s; color: white;
+        }
+        button#submit-btn { width: 100%; background-color: #27ae60; }
+        button#submit-btn:hover { background-color: #219150; }
+        button#submit-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        button#report-btn { background-color: #8e44ad; width: 48%; margin-top: 20px; }
+        button#report-btn:hover { background-color: #732d91; }
+        button#report-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        button#restart-btn { background-color: #7f8c8d; width: 48%; margin-top: 20px; }
+        button#restart-btn:hover { background-color: #636e72; }
+
+        #results-area { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #34495e; color: white; }
+        .total-row { background-color: #ecf0f1; font-weight: bold; }
+        .action-buttons { display: flex; justify-content: space-between; }
+        #report-status {
+            text-align: center; margin-top: 10px;
+            font-size: 0.95em; color: #8e44ad; min-height: 20px;
         }
 
-        button#submit-btn {
-            width: 100%;
-            background-color: #27ae60;
+        /* ── Step 0: user details form ──────────────────────── */
+        #details-area .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 24px;
+            margin-top: 16px;
         }
-
-        button#submit-btn:hover {
-            background-color: #219150;
+        #details-area .form-group { display: flex; flex-direction: column; gap: 5px; }
+        #details-area label { font-weight: 600; font-size: 0.95em; color: #2c3e50; }
+        #details-area input, #details-area select {
+            padding: 9px 12px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 1em; background: #fafafa;
         }
-
-        button#download-btn {
-            background-color: #8e44ad;
-            width: 48%;
-            margin-top: 20px;
+        #details-area input:focus, #details-area select:focus {
+            outline: none; border-color: #8e44ad; background: white;
         }
-
-        button#download-btn:hover {
-            background-color: #732d91;
+        button#details-next-btn {
+            width: 100%; background-color: #8e44ad; margin-top: 20px;
         }
-
-        button#restart-btn {
-            background-color: #7f8c8d;
-            width: 48%;
-            margin-top: 20px;
-        }
-
-        button#restart-btn:hover {
-            background-color: #636e72;
-        }
-
-        #results-area {
-            display: none;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #34495e;
-            color: white;
-        }
-
-        .total-row {
-            background-color: #ecf0f1;
-            font-weight: bold;
-        }
-
-        .action-buttons {
-            display: flex;
-            justify-content: space-between;
+        button#details-next-btn:hover { background-color: #732d91; }
+        .step-badge {
+            display: inline-block; background: #8e44ad; color: white;
+            font-size: 0.8em; padding: 2px 10px; border-radius: 20px;
+            margin-bottom: 10px; font-weight: 600;
         }
     </style>
 </head>
-
 <body>
 
-    <h1>Behavioral Assessment Questionnaire</h1>
+<h1>Behavioral Assessment Questionnaire</h1>
 
-    <div id="quiz-area" class="card">
-        <p>Please answer all 54 questions based on how you generally feel or act.</p>
-        <form id="questionnaire-form">
-            <div id="questions-container">
-                <p>Loading questions from server...</p>
-            </div>
-            <br>
-            <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">Submit
-                Assessment</button>
-        </form>
+<!-- ── STEP 0: User Details Form ─────────────────────────────── -->
+<div id="details-area" class="card">
+    <span class="step-badge">Step 1 of 2</span>
+    <h2 style="text-align:left; margin-bottom:4px;">Your Details</h2>
+    <p style="color:#666; font-size:0.95em;">Please fill in your information before starting the assessment.</p>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="ud-name">Full Name *</label>
+            <input type="text" id="ud-name" required>
+        </div>
+        <div class="form-group">
+            <label for="ud-age">Age *</label>
+            <input type="number" id="ud-age" min="10" max="99" required>
+        </div>
+        <div class="form-group">
+            <label for="ud-gender">Gender *</label>
+            <select id="ud-gender" required>
+                <option value="">— Select —</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Non-binary</option>
+                <option>Prefer not to say</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ud-occupation">Occupation *</label>
+            <select id="ud-occupation" required>
+                <option value="">— Select —</option>
+                <option>Student</option>
+                <option>Service</option>
+                <option>Business</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ud-designation">Designation / Field of Study *</label>
+            <input type="text" id="ud-designation" placeholder="e.g. MBA — Marketing, Software Engineer">
+        </div>
+        <div class="form-group">
+            <label for="ud-teamtype">Team Context *</label>
+            <select id="ud-teamtype" required>
+                <option value="">— Select —</option>
+                <option>Group Projects</option>
+                <option>Live Projects</option>
+                <option>Committee Work</option>
+                <option>Case Competition Teams</option>
+                <option>Other</option>
+            </select>
+        </div>
     </div>
 
-    <div id="results-area" class="card">
-        <h2>Assessment Results</h2>
-        <table id="score-table">
-            <thead>
-                <tr>
-                    <th>Measure</th>
-                    <th>Inclusion (I)</th>
-                    <th>Control (C)</th>
-                    <th>Affection (A)</th>
-                    <th>Row Total</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <button type="button" id="details-next-btn" onclick="submitDetails()">
+        Continue to Assessment →
+    </button>
+</div>
 
-        <div
-            style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #3498db; border-radius: 4px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">AI Psychological Analysis</h3>
-            <div id="ai-report-content" style="line-height: 1.6; color: #444;"></div>
-        </div>
+<!-- ── STEP 1: Questionnaire ──────────────────────────────────── -->
 
-        <h3 style="text-align: center; margin-top: 20px;">Grand Total: <span id="grand-total"></span></h3>
+<div id="quiz-area" class="card" style="display:none;">
+    <span class="step-badge">Step 2 of 2</span>
+    <p>Please answer all 54 questions based on how you generally feel or act.</p>
+    <form id="questionnaire-form">
+        <div id="questions-container"><p>Loading questions from server...</p></div>
+        <br>
+        <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">
+            Submit Assessment
+        </button>
+    </form>
+</div>
 
-        <div class="action-buttons">
-            <button id="download-btn" onclick="generateReport()">Download PDF Report</button>
-            <button id="restart-btn" onclick="location.reload()">Start Over</button>
-        </div>
+<div id="results-area" class="card">
+    <h2>Assessment Results</h2>
+    <table id="score-table">
+        <thead>
+            <tr>
+                <th>Measure</th><th>Inclusion (I)</th><th>Control (C)</th>
+                <th>Affection (A)</th><th>Row Total</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div style="margin-top:30px; padding:20px; background-color:#f8f9fa;
+                border-left:5px solid #3498db; border-radius:4px;">
+        <h3 style="color:#2c3e50; margin-top:0;">AI Psychological Analysis</h3>
+        <div id="ai-report-content" style="line-height:1.6; color:#444;"></div>
     </div>
 
-    <div id="pdf-container" style="display: none;"></div>
+    <h3 style="text-align:center; margin-top:20px;">
+        Grand Total: <span id="grand-total"></span>
+    </h3>
 
-    <script>
-        const API_URL = "http://127.0.0.1:8000";
-        let currentResultData = null;
-        let currentAnswers = null;
+    <div class="action-buttons">
+        <!--
+            "Generate Full Report" opens the pre-rendered HTML that was
+            returned by /evaluate and cached in currentReportHtml.
+            NO second server call. NO second Gemini call.
+        -->
+        <button id="report-btn" onclick="generateReport()" disabled>
+            📄 Generate Full Report
+        </button>
+        <button id="restart-btn" onclick="location.reload()">Start Over</button>
+    </div>
+    <div id="report-status"></div>
+</div>
 
-        const SCALES = {
-            "A": ["Never", "Rarely", "Occasionally", "Sometimes", "Often", "Usually"],
-            "B": ["Nobody", "1 or 2 people", "A few people", "Some people", "Many people", "Most people"]
-        };
+<script>
+    const API_URL = "http://127.0.0.1:8000";
 
-        async function loadQuestions() {
-            try {
-                const response = await fetch(`${API_URL}/questions`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    /*
+     * currentReportHtml is set once — when /evaluate returns.
+     * After that, the "Generate Full Report" button just opens it.
+     * Gemini is never called again.
+     */
+    let currentReportHtml = null;
+    let userDetails = {};   // ← collected from Step 0 details form
 
-                const questions = await response.json();
-                renderQuestions(questions);
-                document.getElementById('submit-btn').style.display = 'block';
-            } catch (error) {
-                console.error("Fetch Error:", error);
-                document.getElementById('questions-container').innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
-            }
+    const SCALES = {
+        "A": ["Never","Rarely","Occasionally","Sometimes","Often","Usually"],
+        "B": ["Nobody","1 or 2 people","A few people","Some people","Many people","Most people"]
+    };
+
+    /* ── Step 0: collect user details, show questionnaire ───────── */
+    function submitDetails() {
+        const name        = document.getElementById('ud-name').value.trim();
+        const age         = document.getElementById('ud-age').value.trim();
+        const gender      = document.getElementById('ud-gender').value;
+        const occupation  = document.getElementById('ud-occupation').value;
+        const designation = document.getElementById('ud-designation').value.trim();
+        const team_type   = document.getElementById('ud-teamtype').value;
+
+        if (!name || !age || !gender || !occupation || !team_type) {
+            alert("Please fill in all required fields (*).");
+            return;
         }
 
-        function renderQuestions(questions) {
-            const container = document.getElementById('questions-container');
-            container.innerHTML = "";
-            questions.forEach((q) => {
-                const scaleLabels = SCALES[q.type];
-                let optionsHTML = "";
-                scaleLabels.forEach((label, i) => {
-                    optionsHTML += `
-                        <label class="option-label">
-                            <input type="radio" name="q${q.id}" value="${i}" required>
-                            <span>${label}</span>
-                        </label>`;
-                });
-                container.innerHTML += `
-                    <div class="question-item">
-                        <span class="question-text">${q.id}. ${q.text}</span>
-                        <div class="options-container">${optionsHTML}</div>
-                    </div>`;
+        userDetails = { name, age, gender, occupation, designation, team_type };
+
+        document.getElementById('details-area').style.display = 'none';
+        document.getElementById('quiz-area').style.display    = 'block';
+    }
+
+    /* ── Load questions ──────────────────────────────────────────── */
+    async function loadQuestions() {
+        try {
+            const response = await fetch(`${API_URL}/questions`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const questions = await response.json();
+            renderQuestions(questions);
+            document.getElementById('submit-btn').style.display = 'block';
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            document.getElementById('questions-container').innerHTML =
+                `<p style="color:red;">Error connecting to API at ${API_URL}. Is the server running?</p>`;
+        }
+    }
+
+    function renderQuestions(questions) {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = "";
+        questions.forEach((q) => {
+            const scaleLabels = SCALES[q.type];
+            let optionsHTML = "";
+            scaleLabels.forEach((label, i) => {
+                optionsHTML += `
+                    <label class="option-label">
+                        <input type="radio" name="q${q.id}" value="${i}" required>
+                        <span>${label}</span>
+                    </label>`;
             });
+            container.innerHTML += `
+                <div class="question-item">
+                    <span class="question-text">${q.id}. ${q.text}</span>
+                    <div class="options-container">${optionsHTML}</div>
+                </div>`;
+        });
+    }
+
+    /* ── Submit → /evaluate (Gemini called here, ONCE) ──────────── */
+    async function submitForm() {
+        const form = document.getElementById('questionnaire-form');
+        if (!form.checkValidity()) {
+            alert("Please answer all questions before submitting.");
+            return;
         }
 
-        async function submitForm() {
-            const form = document.getElementById('questionnaire-form');
-            if (!form.checkValidity()) {
-                alert("Please answer all questions before submitting.");
-                return;
-            }
-
-            const formData = new FormData(form);
-            const answers = {};
-
-            for (let [key, value] of formData.entries()) {
-                answers[key.replace('q', '')] = parseInt(value);
-            }
-
-            currentAnswers = answers;
-
-            document.getElementById('submit-btn').innerText = "Analyzing... Please wait";
-
-            try {
-                const response = await fetch(`${API_URL}/evaluate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ answers: answers })
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-                const result = await response.json();
-                currentResultData = result;
-                showResults(result);
-            } catch (error) {
-                alert("Error calculating score. Check console.");
-                console.error(error);
-                document.getElementById('submit-btn').innerText = "Submit Assessment";
-            }
+        const formData = new FormData(form);
+        const answers  = {};
+        for (let [key, value] of formData.entries()) {
+            answers[key.replace('q', '')] = parseInt(value);
         }
 
-        // Formats Markdown to HTML
-        function formatAIReport(reportString) {
-            return reportString
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n\s*\*\s/g, '<br><br>&bull; ')
-                .replace(/\n/g, '<br>');
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.innerText = "Analysing & building report… please wait";
+        submitBtn.disabled  = true;
+
+        try {
+            /*
+             * POST to /evaluate.
+             * The server:
+             *   1. Scores the answers
+             *   2. Calls Gemini ONCE
+             *   3. Fills the HTML template
+             *   4. Returns: matrix/totals (inline table) +
+             *               ai_report (inline summary) +
+             *               rendered_html (the full report, ready to open)
+             */
+            const response = await fetch(`${API_URL}/evaluate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers, user_details: userDetails })
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const result = await response.json();
+
+            /* Cache the fully-rendered report HTML */
+            currentReportHtml = result.rendered_html;
+
+            /* Show scores and AI summary inline */
+            showResults(result);
+
+            /* Unlock the report button — no more waiting needed */
+            const reportBtn = document.getElementById('report-btn');
+            reportBtn.disabled  = false;
+            document.getElementById('report-status').innerText =
+                "✅ Report ready — click to open in a new tab.";
+
+        } catch (error) {
+            alert("Error during assessment. Check the browser console for details.");
+            console.error(error);
+            submitBtn.innerText = "Submit Assessment";
+            submitBtn.disabled  = false;
+        }
+    }
+
+    /* Simple markdown → HTML for the inline AI summary */
+    function formatAIReport(reportString) {
+        return reportString
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim,  '<h2>$1</h2>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g,    '<em>$1</em>')
+            .replace(/\n\s*\*\s/g,   '<br><br>&bull; ')
+            .replace(/\n/g, '<br>');
+    }
+
+    function showResults(data) {
+        document.getElementById('quiz-area').style.display    = 'none';
+        document.getElementById('results-area').style.display = 'block';
+
+        const tbody = document.querySelector('#score-table tbody');
+        const m = data.matrix, r = data.row_totals, c = data.col_totals;
+        tbody.innerHTML = `
+            <tr>
+                <td><strong>Expressed</strong></td>
+                <td>${m[0][0]}</td><td>${m[0][1]}</td><td>${m[0][2]}</td>
+                <td><strong>${r[0]}</strong></td>
+            </tr>
+            <tr>
+                <td><strong>Wanted</strong></td>
+                <td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td>
+                <td><strong>${r[1]}</strong></td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td>
+                <td><strong>${c[2]}</strong></td><td></td>
+            </tr>`;
+        document.getElementById('ai-report-content').innerHTML =
+            formatAIReport(data.ai_report);
+        document.getElementById('grand-total').textContent = data.grand_total;
+    }
+
+    /* ── Open the pre-rendered report — NO server call, NO Gemini ── */
+    function generateReport() {
+        if (!currentReportHtml) {
+            alert("Report not ready yet. Please complete and submit the assessment first.");
+            return;
         }
 
-        function showResults(data) {
-            document.getElementById('quiz-area').style.display = 'none';
-            document.getElementById('results-area').style.display = 'block';
+        /* Open the cached HTML as a Blob URL in a new tab */
+        const blob = new Blob([currentReportHtml], { type: "text/html" });
+        const url  = URL.createObjectURL(blob);
+        window.open(url, "_blank");
 
-            const tbody = document.querySelector('#score-table tbody');
-            const m = data.matrix, r = data.row_totals, c = data.col_totals;
+        document.getElementById('report-status').innerText =
+            "✅ Report opened in a new tab! (Ctrl+P to save as PDF)";
+    }
 
-            tbody.innerHTML = `
-                <tr><td><strong>Expressed</strong></td><td>${m[0][0]}</td><td>${m[0][1]}</td><td>${m[0][2]}</td><td><strong>${r[0]}</strong></td></tr>
-                <tr><td><strong>Wanted</strong></td><td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td><td><strong>${r[1]}</strong></td></tr>
-                <tr class="total-row"><td><strong>Total</strong></td><td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td><td><strong>${c[2]}</strong></td><td></td></tr>
-            `;
-
-            document.getElementById('ai-report-content').innerHTML = formatAIReport(data.ai_report);
-            document.getElementById('grand-total').textContent = data.grand_total;
-        }
-
-        async function generateReport() {
-            if (!currentAnswers) return;
-
-            const btn = document.getElementById('download-btn');
-            const originalText = btn.innerText;
-            btn.innerText = "Generating PDF...";
-            btn.disabled = true;
-
-            try {
-                // 1. Fetch the fully rendered HTML report from the server
-                const response = await fetch(`${API_URL}/report`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ answers: currentAnswers })
-                });
-
-                if (!response.ok) {
-                    const err = await response.text();
-                    console.error("Report generation failed:", err);
-                    alert("Report generation failed. Check console for details.");
-                    return;
-                }
-
-                const fullyRenderedHtml = await response.text();
-
-                // 2. Put it in our hidden div
-                const pdfContainer = document.getElementById('pdf-container');
-                pdfContainer.innerHTML = fullyRenderedHtml;
-                pdfContainer.style.display = 'block';
-
-                // 3. Configure html2pdf settings
-                const opt = {
-                    margin: 0,
-                    filename: `FIRO_B_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-                };
-
-                // 4. Generate and download PDF
-                await html2pdf().set(opt).from(pdfContainer).save();
-
-                // 5. Cleanup
-                pdfContainer.style.display = 'none';
-                pdfContainer.innerHTML = '';
-
-            } catch (err) {
-                console.error("PDF Generation failed:", err);
-                alert("Failed to generate PDF. Make sure the server is running.");
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        // Initialize
-        loadQuestions();
-    </script>
+    loadQuestions();
+</script>
 </body>
-
 </html>

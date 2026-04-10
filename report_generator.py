@@ -7,34 +7,50 @@ from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY2")
+API_KEY = os.getenv("GEMINI_API_KEY3")
 client = genai.Client(api_key=API_KEY)
 
 RULE_BOOK_FILE = None
 
 
-def initialize_context_cache(pdf_path: str):
+# ─────────────────────────────────────────────────────────────
+#  PDF UPLOAD / CONTEXT CACHE
+# ─────────────────────────────────────────────────────────────
+
+def initialize_context_cache(pdf_path: str, display_name: str = "firo_b_rules"):
     global RULE_BOOK_FILE
+    
+    # 1. Check if the file already exists on Google's servers
+    for f in client.files.list():
+        if f.display_name == display_name:
+            print(f"File already exists! Reusing: {f.name}")
+            RULE_BOOK_FILE = f
+            return
+
+    # 2. If not, upload it with the display_name
     print(f"--- Uploading Rule Book from {pdf_path} ---")
-    if not os.path.exists(pdf_path):
-        raise FileNotFoundError(
-            f"Could not find the PDF at: '{pdf_path}'. "
-            "Make sure firo_b_rules.pdf is in the same folder as main.py!"
-        )
-    RULE_BOOK_FILE = client.files.upload(file=pdf_path)
-    print("Processing file...")
+    RULE_BOOK_FILE = client.files.upload(
+        file=pdf_path, 
+        config={'display_name': display_name}
+    )
+    
+    # Wait for processing...
     while RULE_BOOK_FILE.state.name == "PROCESSING":
         time.sleep(2)
         RULE_BOOK_FILE = client.files.get(name=RULE_BOOK_FILE.name)
-    if RULE_BOOK_FILE.state.name != "ACTIVE":
-        raise Exception(f"File upload failed with state: {RULE_BOOK_FILE.state.name}")
+        
     print(f"File Ready! Name: {RULE_BOOK_FILE.name}")
 
 
+# ─────────────────────────────────────────────────────────────
+#  GEMINI REPORT GENERATION  (called ONLY from /evaluate)
+# ─────────────────────────────────────────────────────────────
+
 def generate_psychometric_report(scores: dict, labels: dict) -> str:
     """
-    Sends user scores + uploaded PDF to Gemini and returns raw text.
-    `scores` must contain: matrix, row_totals, col_totals, grand_total.
+    Called once from /evaluate.
+    The returned text is stored by the frontend and passed back to /report,
+    so this function is NEVER called from the report endpoint.
     """
     global RULE_BOOK_FILE
 
@@ -126,7 +142,129 @@ def generate_psychometric_report(scores: dict, labels: dict) -> str:
 
 
 # ─────────────────────────────────────────────────────────────
-#  HELPERS: parse Gemini output → HTML, then fill template
+#  LEVEL BAR  +  INDICATE TEXT  (pure Python, no API)
+# ─────────────────────────────────────────────────────────────
+
+def _score_level(score: int) -> str:
+    """Return 'LOW', 'MED', or 'HIGH' for a 0-9 FIRO-B score."""
+    if score <= 3:
+        return "LOW"
+    elif score <= 5:
+        return "MED"
+    else:
+        return "HIGH"
+
+
+def level_bar_html(score: int) -> str:
+    """
+    Produce the three-box LOW / MED / HIGH bar HTML (matching the CPP sample).
+    The active box is highlighted dark; the others are grey.
+    """
+    level = _score_level(score)
+    bars = []
+    for lbl in ("LOW", "MED", "HIGH"):
+        css = "on" if lbl == level else ""
+        bars.append(f'<span class="{css}">{lbl}</span>')
+    return "\n".join(bars)
+
+
+def indicate_text(label: str, score: int) -> str:
+    """
+    Generate the 'What Your Results Indicate' sentence that matches
+    the CPP sample wording pattern.
+    label is one of: EI, WI, EC, WC, EA, WA
+    """
+    level = _score_level(score)
+
+    templates = {
+        # ── Expressed Inclusion ───────────────────────────────────────
+        ("EI", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and prefer to work more independently, with limited social engagement."
+        ),
+        ("EI", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and probably enjoy a moderate amount of interpersonal contact at work."
+        ),
+        ("EI", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and probably enjoy having a steady amount of interpersonal contact at work."
+        ),
+        # ── Wanted Inclusion ──────────────────────────────────────────
+        ("WI", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and tend not to seek or expect inclusion from others."
+        ),
+        ("WI", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and moderately value being included by others."
+        ),
+        ("WI", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and enjoy having others seek out your input and offer you a chance "
+            "for a higher profile."
+        ),
+        # ── Expressed Control ─────────────────────────────────────────
+        ("EC", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and avoid providing too much structure and direction for others."
+        ),
+        ("EC", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and are comfortable sharing influence and direction with others."
+        ),
+        ("EC", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and enjoy taking charge, organising activities, and influencing others."
+        ),
+        # ── Wanted Control ────────────────────────────────────────────
+        ("WC", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and prefer autonomy over defined structure."
+        ),
+        ("WC", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and are comfortable in both structured and unstructured environments."
+        ),
+        ("WC", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and are most comfortable respecting others' authority and maintaining "
+            "the structure provided to you."
+        ),
+        # ── Expressed Affection ───────────────────────────────────────
+        ("EA", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and tend to keep relationships more professional and task-focused."
+        ),
+        ("EA", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and express warmth and personal support in selected relationships."
+        ),
+        ("EA", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and provide a lot of warmth, encouragement, and support for others at work."
+        ),
+        # ── Wanted Affection ──────────────────────────────────────────
+        ("WA", "LOW"): (
+            f"Your result of {score} suggests that you will usually disagree with these "
+            "statements and prefer to keep interactions more formal and less personal."
+        ),
+        ("WA", "MED"): (
+            f"Your result of {score} suggests that you will sometimes agree with these "
+            "statements and appreciate warmth from others in appropriate contexts."
+        ),
+        ("WA", "HIGH"): (
+            f"Your result of {score} suggests that you will usually agree with these "
+            "statements and will be happiest when others around you are warm, supportive, "
+            "and openly encouraging."
+        ),
+    }
+
+    return templates.get((label, level), f"Your result of {score} is in the {level.lower()} range.")
+
+
+# ─────────────────────────────────────────────────────────────
+#  MARKDOWN → HTML  +  SECTION PARSER
 # ─────────────────────────────────────────────────────────────
 
 def markdown_to_html(text: str) -> str:
@@ -145,36 +283,32 @@ def markdown_to_html(text: str) -> str:
     for raw_line in lines:
         line = raw_line.strip()
 
-        # blank line
         if not line:
             if in_ul:
                 html_lines.append("</ul>")
                 in_ul = False
             continue
 
-        # bullet point
         if line.startswith("- "):
             content = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line[2:])
             if not in_ul:
-                html_lines.append('<ul>')
+                html_lines.append("<ul>")
                 in_ul = True
             html_lines.append(f"  <li>{content}</li>")
 
-        # stand-alone bold line → sub-heading (e.g. **Role in teams:**)
         elif re.match(r"^\*\*[^*]+\*\*\s*$", line):
             if in_ul:
                 html_lines.append("</ul>")
                 in_ul = False
             inner = re.sub(r"^\*\*(.*)\*\*\s*$", r"\1", line).rstrip(":")
-            html_lines.append(f'<h4>{inner}</h4>')
+            html_lines.append(f"<h4>{inner}</h4>")
 
-        # regular paragraph
         else:
             if in_ul:
                 html_lines.append("</ul>")
                 in_ul = False
             converted = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
-            html_lines.append(f'<p>{converted}</p>')
+            html_lines.append(f"<p>{converted}</p>")
 
     if in_ul:
         html_lines.append("</ul>")
@@ -204,9 +338,7 @@ def parse_report_sections(raw_text: str) -> dict:
             continue
 
         # Strip Gemini's redundant bold section-title line at the top
-        # (e.g. "**1. Total Expressed and Wanted Behaviors**")
-        # — the template already has an <h2> for each page.
-        lines = raw_section.split("\n")
+        lines     = raw_section.split("\n")
         start_idx = 0
         for j, line in enumerate(lines):
             stripped = line.strip()
@@ -221,16 +353,31 @@ def parse_report_sections(raw_text: str) -> dict:
     return sections
 
 
-def fill_html_report(template_path: str, scores: dict, labels: dict, ai_report_text: str) -> str:
+# ─────────────────────────────────────────────────────────────
+#  TEMPLATE FILLER  (pure Python, zero API calls)
+# ─────────────────────────────────────────────────────────────
+
+def fill_html_report(template_path: str, scores: dict, labels: dict, ai_report_text: str, user_details: dict = None) -> str:
     """
-    Read the HTML template, replace every {{PLACEHOLDER}} with the real value,
+    Read the HTML template, replace every {{PLACEHOLDER}} with its real value,
     and return the complete, ready-to-serve HTML string.
 
-    Grid placeholders ({{E_INC}} etc.) are set first — these are also the ones
-    the frontend may replace via JavaScript (first-occurrence only).
+    This function makes NO external API calls.
+    The ai_report_text is already-generated text passed in from the caller.
 
-    STRIP_ placeholders are unique names used only in the mini-score strips on
-    the interpretation pages, so they are never accidentally replaced by JS.
+    Placeholders handled:
+      Grid    : {{DATE}}, {{E_INC}}, {{E_CON}}, {{E_AFF}},
+                {{W_INC}}, {{W_CON}}, {{W_AFF}},
+                {{T_EXP}}, {{T_WAN}},
+                {{T_INC}}, {{T_CON}}, {{T_AFF}}, {{G_TOT}}
+      User    : {{NAME}}, {{AGE}}, {{GENDER}}, {{OCCUPATION}},
+                {{DESIGNATION}}, {{TEAM_TYPE}}
+      Labels  : {{INC_LABEL}}, {{CON_LABEL}}, {{AFF_LABEL}}
+      Level   : {{LEVEL_EI}}, {{LEVEL_WI}}, {{LEVEL_EC}},
+                {{LEVEL_WC}}, {{LEVEL_EA}}, {{LEVEL_WA}}
+      Indicate: {{INDICATE_EI}}, {{INDICATE_WI}}, {{INDICATE_EC}},
+                {{INDICATE_WC}}, {{INDICATE_EA}}, {{INDICATE_WA}}
+      AI pages: {{PAGE_1}} … {{PAGE_7}}
     """
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
@@ -241,63 +388,69 @@ def fill_html_report(template_path: str, scores: dict, labels: dict, ai_report_t
     grand_total = scores["grand_total"]
     date_str    = datetime.now().strftime("%B %d, %Y")
 
-    # ── Grid / metadata placeholders (first occurrence in template) ──────────
+    # ── User details (optional — defaults to "—" if not supplied) ─────
+    ud = user_details or {}
+
+    # ── Scores, metadata & user details ──────────────────────────────
     grid_map = {
-        "{{DATE}}":  date_str,
-        "{{E_INC}}": str(matrix[0][0]),
-        "{{E_CON}}": str(matrix[0][1]),
-        "{{E_AFF}}": str(matrix[0][2]),
-        "{{W_INC}}": str(matrix[1][0]),
-        "{{W_CON}}": str(matrix[1][1]),
-        "{{W_AFF}}": str(matrix[1][2]),
-        "{{T_EXP}}": str(row_totals[0]),
-        "{{T_WAN}}": str(row_totals[1]),
-        "{{T_INC}}": str(col_totals[0]),
-        "{{T_CON}}": str(col_totals[1]),
-        "{{T_AFF}}": str(col_totals[2]),
-        "{{G_TOT}}": str(grand_total),
+        "{{DATE}}":        date_str,
+        "{{E_INC}}":       str(matrix[0][0]),
+        "{{E_CON}}":       str(matrix[0][1]),
+        "{{E_AFF}}":       str(matrix[0][2]),
+        "{{W_INC}}":       str(matrix[1][0]),
+        "{{W_CON}}":       str(matrix[1][1]),
+        "{{W_AFF}}":       str(matrix[1][2]),
+        "{{T_EXP}}":       str(row_totals[0]),
+        "{{T_WAN}}":       str(row_totals[1]),
+        "{{T_INC}}":       str(col_totals[0]),
+        "{{T_CON}}":       str(col_totals[1]),
+        "{{T_AFF}}":       str(col_totals[2]),
+        "{{G_TOT}}":       str(grand_total),
+        # ── user details ─────────────────────────────────────────────
+        "{{NAME}}":        ud.get("name", "—"),
+        "{{AGE}}":         ud.get("age", "—"),
+        "{{GENDER}}":      ud.get("gender", "—"),
+        "{{OCCUPATION}}":  ud.get("occupation", "—"),
+        "{{DESIGNATION}}": ud.get("designation", "—"),
+        "{{TEAM_TYPE}}":   ud.get("team_type", "—"),
     }
     for placeholder, value in grid_map.items():
         html = html.replace(placeholder, value)
 
-    # ── STRIP_ placeholders (unique — only on interpretation pages) ──────────
-    strip_map = {
-        # Page 3 — Total Behaviors
-        "{{STRIP_T_EXP}}":   str(row_totals[0]),
-        "{{STRIP_T_WAN}}":   str(row_totals[1]),
-        "{{STRIP_G_TOT}}":   str(grand_total),
-        # Page 4 — Inclusion
-        "{{STRIP_E_INC}}":   str(matrix[0][0]),
-        "{{STRIP_W_INC}}":   str(matrix[1][0]),
-        "{{STRIP_T_INC}}":   str(col_totals[0]),
-        "{{INC_LABEL}}":     labels.get("inclusion", ""),
-        # Page 5 — Control
-        "{{STRIP_E_CON}}":   str(matrix[0][1]),
-        "{{STRIP_W_CON}}":   str(matrix[1][1]),
-        "{{STRIP_T_CON}}":   str(col_totals[1]),
-        "{{CON_LABEL}}":     labels.get("control", ""),
-        # Page 6 — Affection
-        "{{STRIP_E_AFF}}":   str(matrix[0][2]),
-        "{{STRIP_W_AFF}}":   str(matrix[1][2]),
-        "{{STRIP_T_AFF}}":   str(col_totals[2]),
-        "{{AFF_LABEL}}":     labels.get("affection", ""),
-        # Page 7 — Snapshot (uses _2 suffix to stay unique)
-        "{{STRIP_T_INC_2}}": str(col_totals[0]),
-        "{{STRIP_T_CON_2}}": str(col_totals[1]),
-        "{{STRIP_T_AFF_2}}": str(col_totals[2]),
-        "{{STRIP_G_TOT_2}}": str(grand_total),
-        # Page 8 — Group dynamics
-        "{{STRIP_T_EXP_2}}": str(row_totals[0]),
-        "{{STRIP_T_WAN_2}}": str(row_totals[1]),
-        # Page 9 — People (uses _3 suffix)
-        "{{STRIP_T_INC_3}}": str(col_totals[0]),
-        "{{STRIP_T_CON_3}}": str(col_totals[1]),
-        "{{STRIP_T_AFF_3}}": str(col_totals[2]),
+    # ── Profile labels ────────────────────────────────────────────────
+    label_map = {
+        "{{INC_LABEL}}": labels.get("inclusion", ""),
+        "{{CON_LABEL}}": labels.get("control",   ""),
+        "{{AFF_LABEL}}": labels.get("affection",  ""),
     }
-    for placeholder, value in strip_map.items():
+    for placeholder, value in label_map.items():
         html = html.replace(placeholder, value)
 
-    # ── AI section placeholders ──────────────────────────────────────────────
+    # ── LOW / MED / HIGH bars (Page 4 individual needs table) ─────────
+    level_map = {
+        "{{LEVEL_EI}}": level_bar_html(matrix[0][0]),
+        "{{LEVEL_WI}}": level_bar_html(matrix[1][0]),
+        "{{LEVEL_EC}}": level_bar_html(matrix[0][1]),
+        "{{LEVEL_WC}}": level_bar_html(matrix[1][1]),
+        "{{LEVEL_EA}}": level_bar_html(matrix[0][2]),
+        "{{LEVEL_WA}}": level_bar_html(matrix[1][2]),
+    }
+    for placeholder, value in level_map.items():
+        html = html.replace(placeholder, value)
+
+    # ── "What Your Results Indicate" sentences (Page 4) ───────────────
+    indicate_map = {
+        "{{INDICATE_EI}}": indicate_text("EI", matrix[0][0]),
+        "{{INDICATE_WI}}": indicate_text("WI", matrix[1][0]),
+        "{{INDICATE_EC}}": indicate_text("EC", matrix[0][1]),
+        "{{INDICATE_WC}}": indicate_text("WC", matrix[1][1]),
+        "{{INDICATE_EA}}": indicate_text("EA", matrix[0][2]),
+        "{{INDICATE_WA}}": indicate_text("WA", matrix[1][2]),
+    }
+    for placeholder, value in indicate_map.items():
+        html = html.replace(placeholder, value)
+
+    # ── AI section pages ──────────────────────────────────────────────
     sections = parse_report_sections(ai_report_text)
     for key, content in sections.items():
         html = html.replace("{{" + key + "}}", content)
