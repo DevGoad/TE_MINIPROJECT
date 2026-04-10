@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Behavior Assessment</title>
+    <!-- No html2pdf. No second server call. Report opens from cached HTML. -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -14,64 +14,41 @@
             margin: 0 auto;
             padding: 20px;
         }
-
         h1, h2 { text-align: center; color: #2c3e50; }
-
         .card {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-
         .question-item {
             margin-bottom: 25px;
             padding-bottom: 15px;
             border-bottom: 1px solid #eee;
         }
-
-        .question-text {
-            font-weight: 600;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-            display: block;
-        }
-
+        .question-text { font-weight: 600; font-size: 1.1em; margin-bottom: 10px; display: block; }
         .options-container { display: flex; gap: 15px; flex-wrap: wrap; }
-
         .option-label {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #fafafa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            transition: 0.2s;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+            background: #fafafa; padding: 8px 12px; border-radius: 4px;
+            border: 1px solid #ddd; transition: 0.2s;
         }
-
         .option-label:hover { background: #eef; border-color: #aaf; }
-        input[type="radio"]:checked+span { font-weight: bold; color: #2980b9; }
-
+        input[type="radio"]:checked + span { font-weight: bold; color: #2980b9; }
         button {
-            padding: 15px;
-            border: none;
-            font-size: 1.2em;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: 0.3s;
-            color: white;
+            padding: 15px; border: none; font-size: 1.2em;
+            border-radius: 5px; cursor: pointer; transition: 0.3s; color: white;
         }
-
         button#submit-btn { width: 100%; background-color: #27ae60; }
         button#submit-btn:hover { background-color: #219150; }
-        
-        button#download-btn { background-color: #8e44ad; width: 48%; margin-top: 20px;}
-        button#download-btn:hover { background-color: #732d91; }
-        
-        button#restart-btn { background-color: #7f8c8d; width: 48%; margin-top: 20px;}
+        button#submit-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        button#report-btn { background-color: #8e44ad; width: 48%; margin-top: 20px; }
+        button#report-btn:hover { background-color: #732d91; }
+        button#report-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+
+        button#restart-btn { background-color: #7f8c8d; width: 48%; margin-top: 20px; }
         button#restart-btn:hover { background-color: #636e72; }
 
         #results-area { display: none; }
@@ -79,279 +56,334 @@
         th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
         th { background-color: #34495e; color: white; }
         .total-row { background-color: #ecf0f1; font-weight: bold; }
-        
         .action-buttons { display: flex; justify-content: space-between; }
+        #report-status {
+            text-align: center; margin-top: 10px;
+            font-size: 0.95em; color: #8e44ad; min-height: 20px;
+        }
+
+        /* ── Step 0: user details form ──────────────────────── */
+        #details-area .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 24px;
+            margin-top: 16px;
+        }
+        #details-area .form-group { display: flex; flex-direction: column; gap: 5px; }
+        #details-area label { font-weight: 600; font-size: 0.95em; color: #2c3e50; }
+        #details-area input, #details-area select {
+            padding: 9px 12px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 1em; background: #fafafa;
+        }
+        #details-area input:focus, #details-area select:focus {
+            outline: none; border-color: #8e44ad; background: white;
+        }
+        button#details-next-btn {
+            width: 100%; background-color: #8e44ad; margin-top: 20px;
+        }
+        button#details-next-btn:hover { background-color: #732d91; }
+        .step-badge {
+            display: inline-block; background: #8e44ad; color: white;
+            font-size: 0.8em; padding: 2px 10px; border-radius: 20px;
+            margin-bottom: 10px; font-weight: 600;
+        }
     </style>
 </head>
-
 <body>
 
-    <h1>Behavioral Assessment Questionnaire</h1>
+<h1>Behavioral Assessment Questionnaire</h1>
 
-    <div id="quiz-area" class="card">
-        <p>Please answer all 54 questions based on how you generally feel or act.</p>
-        <form id="questionnaire-form">
-            <div id="questions-container">
-                <p>Loading questions from server...</p>
-            </div>
-            <br>
-            <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">Submit Assessment</button>
-        </form>
+<!-- ── STEP 0: User Details Form ─────────────────────────────── -->
+<div id="details-area" class="card">
+    <span class="step-badge">Step 1 of 2</span>
+    <h2 style="text-align:left; margin-bottom:4px;">Your Details</h2>
+    <p style="color:#666; font-size:0.95em;">Please fill in your information before starting the assessment.</p>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="ud-name">Full Name *</label>
+            <input type="text" id="ud-name" required>
+        </div>
+        <div class="form-group">
+            <label for="ud-age">Age *</label>
+            <input type="number" id="ud-age" min="10" max="99" required>
+        </div>
+        <div class="form-group">
+            <label for="ud-gender">Gender *</label>
+            <select id="ud-gender" required>
+                <option value="">— Select —</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Non-binary</option>
+                <option>Prefer not to say</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ud-occupation">Occupation *</label>
+            <select id="ud-occupation" required>
+                <option value="">— Select —</option>
+                <option>Student</option>
+                <option>Service</option>
+                <option>Business</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ud-designation">Designation / Field of Study *</label>
+            <input type="text" id="ud-designation" placeholder="e.g. MBA — Marketing, Software Engineer">
+        </div>
+        <div class="form-group">
+            <label for="ud-teamtype">Team Context *</label>
+            <select id="ud-teamtype" required>
+                <option value="">— Select —</option>
+                <option>Group Projects</option>
+                <option>Live Projects</option>
+                <option>Committee Work</option>
+                <option>Case Competition Teams</option>
+                <option>Other</option>
+            </select>
+        </div>
     </div>
 
-    <div id="results-area" class="card">
-        <h2>Assessment Results</h2>
-        <table id="score-table">
-            <thead>
-                <tr>
-                    <th>Measure</th>
-                    <th>Inclusion (I)</th>
-                    <th>Control (C)</th>
-                    <th>Affection (A)</th>
-                    <th>Row Total</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        
-        <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #3498db; border-radius: 4px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">AI Psychological Analysis</h3>
-            <div id="ai-report-content" style="line-height: 1.6; color: #444;">
-                <p>Generating detailed analysis with AI... please wait...</p>
-            </div>
-        </div>
+    <button type="button" id="details-next-btn" onclick="submitDetails()">
+        Continue to Assessment →
+    </button>
+</div>
 
-        <h3 style="text-align: center; margin-top: 20px;">Grand Total: <span id="grand-total"></span></h3>
-        
-        <div class="action-buttons">
-            <button id="download-btn" onclick="downloadReport()">Download Official Report</button>
-            <button id="restart-btn" onclick="location.reload()">Start Over</button>
-        </div>
+<!-- ── STEP 1: Questionnaire ──────────────────────────────────── -->
+
+<div id="quiz-area" class="card" style="display:none;">
+    <span class="step-badge">Step 2 of 2</span>
+    <p>Please answer all 54 questions based on how you generally feel or act.</p>
+    <form id="questionnaire-form">
+        <div id="questions-container"><p>Loading questions from server...</p></div>
+        <br>
+        <button type="button" id="submit-btn" onclick="submitForm()" style="display:none;">
+            Submit Assessment
+        </button>
+    </form>
+</div>
+
+<div id="results-area" class="card">
+    <h2>Assessment Results</h2>
+    <table id="score-table">
+        <thead>
+            <tr>
+                <th>Measure</th><th>Inclusion (I)</th><th>Control (C)</th>
+                <th>Affection (A)</th><th>Row Total</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div style="margin-top:30px; padding:20px; background-color:#f8f9fa;
+                border-left:5px solid #3498db; border-radius:4px;">
+        <h3 style="color:#2c3e50; margin-top:0;">AI Psychological Analysis</h3>
+        <div id="ai-report-content" style="line-height:1.6; color:#444;"></div>
     </div>
 
-    <script>
-        const API_URL = "http://127.0.0.1:8000";
-        let currentResultData = null; 
+    <h3 style="text-align:center; margin-top:20px;">
+        Grand Total: <span id="grand-total"></span>
+    </h3>
 
-        const SCALES = {
-            "A": ["Never", "Rarely", "Occasionally", "Sometimes", "Often", "Usually"],
-            "B": ["Nobody", "1 or 2 people", "A few people", "Some people", "Many people", "Most people"]
-        };
+    <div class="action-buttons">
+        <!--
+            "Generate Full Report" opens the pre-rendered HTML that was
+            returned by /evaluate and cached in currentReportHtml.
+            NO second server call. NO second Gemini call.
+        -->
+        <button id="report-btn" onclick="generateReport()" disabled>
+            📄 Generate Full Report
+        </button>
+        <button id="restart-btn" onclick="location.reload()">Start Over</button>
+    </div>
+    <div id="report-status"></div>
+</div>
 
-        async function loadQuestions() {
-            try {
-                const response = await fetch(`${API_URL}/questions`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const questions = await response.json();
-                renderQuestions(questions);
-                document.getElementById('submit-btn').style.display = 'block'; // Show button once loaded
-            } catch (error) {
-                console.error("Fetch Error:", error);
-                document.getElementById('questions-container').innerHTML = `
-                    <div style="background:#fee; padding:15px; border-left:4px solid #e74c3c;">
-                        <h3 style="color:#c0392b; margin-top:0;">Failed to connect to the backend API</h3>
-                        <p style="color:#333;">Please ensure your Python FastAPI server is running in your terminal:</p>
-                        <code style="background:#fff; padding:5px; border:1px solid #ddd; display:block;">uvicorn main:app --reload</code>
-                        <p style="color:#7f8c8d; font-size:0.9em; margin-bottom:0;">Technical details: ${error.message}</p>
-                    </div>`;
-            }
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    /*
+     * currentReportHtml is set once — when /evaluate returns.
+     * After that, the "Generate Full Report" button just opens it.
+     * Gemini is never called again.
+     */
+    let currentReportHtml = null;
+    let userDetails = {};   // ← collected from Step 0 details form
+
+    const SCALES = {
+        "A": ["Never","Rarely","Occasionally","Sometimes","Often","Usually"],
+        "B": ["Nobody","1 or 2 people","A few people","Some people","Many people","Most people"]
+    };
+
+    /* ── Step 0: collect user details, show questionnaire ───────── */
+    function submitDetails() {
+        const name        = document.getElementById('ud-name').value.trim();
+        const age         = document.getElementById('ud-age').value.trim();
+        const gender      = document.getElementById('ud-gender').value;
+        const occupation  = document.getElementById('ud-occupation').value;
+        const designation = document.getElementById('ud-designation').value.trim();
+        const team_type   = document.getElementById('ud-teamtype').value;
+
+        if (!name || !age || !gender || !occupation || !team_type) {
+            alert("Please fill in all required fields (*).");
+            return;
         }
 
-        function renderQuestions(questions) {
-            const container = document.getElementById('questions-container');
-            container.innerHTML = "";
-            questions.forEach((q) => {
-                const scaleLabels = SCALES[q.type];
-                let optionsHTML = "";
-                scaleLabels.forEach((label, i) => {
-                    optionsHTML += `
-                        <label class="option-label">
-                            <input type="radio" name="q${q.id}" value="${i}" required>
-                            <span>${label}</span>
-                        </label>
-                    `;
-                });
-                container.innerHTML += `
-                    <div class="question-item">
-                        <span class="question-text">${q.id}. ${q.text}</span>
-                        <div class="options-container">${optionsHTML}</div>
-                    </div>
-                `;
+        userDetails = { name, age, gender, occupation, designation, team_type };
+
+        document.getElementById('details-area').style.display = 'none';
+        document.getElementById('quiz-area').style.display    = 'block';
+    }
+
+    /* ── Load questions ──────────────────────────────────────────── */
+    async function loadQuestions() {
+        try {
+            const response = await fetch(`${API_URL}/questions`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const questions = await response.json();
+            renderQuestions(questions);
+            document.getElementById('submit-btn').style.display = 'block';
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            document.getElementById('questions-container').innerHTML =
+                `<p style="color:red;">Error connecting to API at ${API_URL}. Is the server running?</p>`;
+        }
+    }
+
+    function renderQuestions(questions) {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = "";
+        questions.forEach((q) => {
+            const scaleLabels = SCALES[q.type];
+            let optionsHTML = "";
+            scaleLabels.forEach((label, i) => {
+                optionsHTML += `
+                    <label class="option-label">
+                        <input type="radio" name="q${q.id}" value="${i}" required>
+                        <span>${label}</span>
+                    </label>`;
             });
+            container.innerHTML += `
+                <div class="question-item">
+                    <span class="question-text">${q.id}. ${q.text}</span>
+                    <div class="options-container">${optionsHTML}</div>
+                </div>`;
+        });
+    }
+
+    /* ── Submit → /evaluate (Gemini called here, ONCE) ──────────── */
+    async function submitForm() {
+        const form = document.getElementById('questionnaire-form');
+        if (!form.checkValidity()) {
+            alert("Please answer all questions before submitting.");
+            return;
         }
 
-        async function submitForm() {
-            const form = document.getElementById('questionnaire-form');
-            if(!form.checkValidity()) {
-                alert("Please answer all questions before submitting.");
-                return;
-            }
-
-            const formData = new FormData(form);
-            const answers = {};
-
-            for (let [key, value] of formData.entries()) {
-                answers[key.replace('q', '')] = parseInt(value);
-            }
-
-            document.getElementById('submit-btn').innerText = "Analyzing... Please wait";
-
-            try {
-                const response = await fetch(`${API_URL}/evaluate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ answers: answers })
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-                const result = await response.json();
-                currentResultData = result; 
-                showResults(result);
-            } catch (error) {
-                alert("Error calculating score. Make sure your server is running and the API key is valid.");
-                console.error(error);
-                document.getElementById('submit-btn').innerText = "Submit Assessment";
-            }
+        const formData = new FormData(form);
+        const answers  = {};
+        for (let [key, value] of formData.entries()) {
+            answers[key.replace('q', '')] = parseInt(value);
         }
 
-        function showResults(data) {
-            document.getElementById('quiz-area').style.display = 'none';
-            document.getElementById('results-area').style.display = 'block';
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.innerText = "Analysing & building report… please wait";
+        submitBtn.disabled  = true;
 
-            const tbody = document.querySelector('#score-table tbody');
-            const m = data.matrix, r = data.row_totals, c = data.col_totals;
+        try {
+            /*
+             * POST to /evaluate.
+             * The server:
+             *   1. Scores the answers
+             *   2. Calls Gemini ONCE
+             *   3. Fills the HTML template
+             *   4. Returns: matrix/totals (inline table) +
+             *               ai_report (inline summary) +
+             *               rendered_html (the full report, ready to open)
+             */
+            const response = await fetch(`${API_URL}/evaluate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers, user_details: userDetails })
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-            tbody.innerHTML = `
-                <tr><td><strong>Expressed</strong></td><td>${m[0][0]}</td><td>${m[0][1]}</td><td>${m[0][2]}</td><td><strong>${r[0]}</strong></td></tr>
-                <tr><td><strong>Wanted</strong></td><td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td><td><strong>${r[1]}</strong></td></tr>
-                <tr class="total-row"><td><strong>Total</strong></td><td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td><td><strong>${c[2]}</strong></td><td></td></tr>
-            `;
-            
-            let formattedReport = data.ai_report
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                .replace(/\*(.*?)\*/g, '<em>$1</em>') 
-                .replace(/\n\s*\*\s/g, '<br>• ') 
-                .replace(/\n/g, '<br>'); 
+            const result = await response.json();
 
-            document.getElementById('ai-report-content').innerHTML = formattedReport;
-            document.getElementById('grand-total').textContent = data.grand_total;
+            /* Cache the fully-rendered report HTML */
+            currentReportHtml = result.rendered_html;
+
+            /* Show scores and AI summary inline */
+            showResults(result);
+
+            /* Unlock the report button — no more waiting needed */
+            const reportBtn = document.getElementById('report-btn');
+            reportBtn.disabled  = false;
+            document.getElementById('report-status').innerText =
+                "✅ Report ready — click to open in a new tab.";
+
+        } catch (error) {
+            alert("Error during assessment. Check the browser console for details.");
+            console.error(error);
+            submitBtn.innerText = "Submit Assessment";
+            submitBtn.disabled  = false;
+        }
+    }
+
+    /* Simple markdown → HTML for the inline AI summary */
+    function formatAIReport(reportString) {
+        return reportString
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim,  '<h2>$1</h2>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g,    '<em>$1</em>')
+            .replace(/\n\s*\*\s/g,   '<br><br>&bull; ')
+            .replace(/\n/g, '<br>');
+    }
+
+    function showResults(data) {
+        document.getElementById('quiz-area').style.display    = 'none';
+        document.getElementById('results-area').style.display = 'block';
+
+        const tbody = document.querySelector('#score-table tbody');
+        const m = data.matrix, r = data.row_totals, c = data.col_totals;
+        tbody.innerHTML = `
+            <tr>
+                <td><strong>Expressed</strong></td>
+                <td>${m[0][0]}</td><td>${m[0][1]}</td><td>${m[0][2]}</td>
+                <td><strong>${r[0]}</strong></td>
+            </tr>
+            <tr>
+                <td><strong>Wanted</strong></td>
+                <td>${m[1][0]}</td><td>${m[1][1]}</td><td>${m[1][2]}</td>
+                <td><strong>${r[1]}</strong></td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>${c[0]}</strong></td><td><strong>${c[1]}</strong></td>
+                <td><strong>${c[2]}</strong></td><td></td>
+            </tr>`;
+        document.getElementById('ai-report-content').innerHTML =
+            formatAIReport(data.ai_report);
+        document.getElementById('grand-total').textContent = data.grand_total;
+    }
+
+    /* ── Open the pre-rendered report — NO server call, NO Gemini ── */
+    function generateReport() {
+        if (!currentReportHtml) {
+            alert("Report not ready yet. Please complete and submit the assessment first.");
+            return;
         }
 
-        function downloadReport() {
-            if (!currentResultData) return;
+        /* Open the cached HTML as a Blob URL in a new tab */
+        const blob = new Blob([currentReportHtml], { type: "text/html" });
+        const url  = URL.createObjectURL(blob);
+        window.open(url, "_blank");
 
-            const d = currentResultData;
-            const m = d.matrix, r = d.row_totals, c = d.col_totals;
-            const dateStr = new Date().toLocaleDateString();
-            
-            let formattedReport = d.ai_report
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                .replace(/\n\s*\*\s/g, '<br><br>• ') 
-                .replace(/\n/g, '<br>');
+        document.getElementById('report-status').innerText =
+            "✅ Report opened in a new tab! (Ctrl+P to save as PDF)";
+    }
 
-            // Safely build the HTML string bypassing any DOM parser logic
-            const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>FIRO-B Report<\x2Ftitle>
-                <style>
-                    body { font-family: 'Arial', sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 40px; background: #fff;}
-                    .header { border-bottom: 3px solid #662D91; padding-bottom: 20px; margin-bottom: 40px; }
-                    .header h1 { color: #8e44ad; font-size: 2.5em; margin: 0;}
-                    .header p { color: #777; margin: 5px 0 0 0; }
-                    
-                    h2 { color: #A5C400; font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px;}
-                    
-                    .grid-container {
-                        display: grid;
-                        grid-template-columns: 80px 1fr 1fr 1fr 1.2fr;
-                        gap: 15px;
-                        text-align: center;
-                        margin-top: 30px;
-                    }
-                    
-                    .box { background: #f9f9f9; border: 1px solid #ccc; border-radius: 4px; padding: 20px; font-size: 2.5em; font-weight: bold;}
-                    .label-top { font-weight: bold; font-size: 1.2em; align-self: end; padding-bottom: 10px;}
-                    .label-side { font-weight: bold; font-size: 1.2em; writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); justify-self: center;}
-                    
-                    .inc-color { color: #0073CF; }
-                    .con-color { color: #F37021; }
-                    .aff-color { color: #00B140; }
-                    .exp-color { color: #A5C400; }
-                    .wan-color { color: #662D91; }
-                    .tot-color { color: #E31837; }
-                    
-                    .box-header { font-size: 0.35em; color: #fff; padding: 8px; margin: -20px -20px 20px -20px; border-radius: 3px 3px 0 0; text-transform: uppercase;}
-                    
-                    .bg-inc { background-color: #0073CF; }
-                    .bg-con { background-color: #F37021; }
-                    .bg-aff { background-color: #00B140; }
-                    .bg-exp { background-color: #A5C400; }
-                    .bg-wan { background-color: #662D91; }
-                    .bg-tot { background-color: #E31837; }
-
-                    .report-body { margin-top: 50px; font-size: 1.1em; color: #444;}
-                <\x2Fstyle>
-            <\x2Fhead>
-            <body>
-                <div class="header">
-                    <h1>FIRO-B&reg; Interpretive Report<\x2Fh1>
-                    <p>Generated on ${dateStr}<\x2Fp>
-                <\x2Fdiv>
-
-                <h2>YOUR FIRO-B&reg; RESULTS<\x2Fh2>
-                
-                <div class="grid-container">
-                    <div><\x2Fdiv>
-                    <div class="label-top inc-color">INCLUSION<\x2Fdiv>
-                    <div class="label-top con-color">CONTROL<\x2Fdiv>
-                    <div class="label-top aff-color">AFFECTION<\x2Fdiv>
-                    <div><\x2Fdiv>
-
-                    <div class="label-side exp-color">EXPRESSED<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-inc">Expressed Inclusion<\x2Fdiv>${m[0][0]}<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-con">Expressed Control<\x2Fdiv>${m[0][1]}<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-aff">Expressed Affection<\x2Fdiv>${m[0][2]}<\x2Fdiv>
-                    <div class="box" style="background:#f1f4d9;"><div class="box-header bg-exp">Total Expressed Behavior<\x2Fdiv>${r[0]}<\x2Fdiv>
-
-                    <div class="label-side wan-color">WANTED<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-inc">Wanted Inclusion<\x2Fdiv>${m[1][0]}<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-con">Wanted Control<\x2Fdiv>${m[1][1]}<\x2Fdiv>
-                    <div class="box"><div class="box-header bg-aff">Wanted Affection<\x2Fdiv>${m[1][2]}<\x2Fdiv>
-                    <div class="box" style="background:#ebdced;"><div class="box-header bg-wan">Total Wanted Behavior<\x2Fdiv>${r[1]}<\x2Fdiv>
-
-                    <div><\x2Fdiv>
-                    <div class="box" style="background:#d9edfc;"><div class="box-header bg-inc">Total Need for Inclusion<\x2Fdiv>${c[0]}<\x2Fdiv>
-                    <div class="box" style="background:#fcead9;"><div class="box-header bg-con">Total Need for Control<\x2Fdiv>${c[1]}<\x2Fdiv>
-                    <div class="box" style="background:#d9f5e3;"><div class="box-header bg-aff">Total Need for Affection<\x2Fdiv>${c[2]}<\x2Fdiv>
-                    <div class="box" style="background:#fce1e5;"><div class="box-header bg-tot">Overall Interpersonal Needs<\x2Fdiv>${d.grand_total}<\x2Fdiv>
-                <\x2Fdiv>
-
-                <h2>INTERPRETATION & ANALYSIS<\x2Fh2>
-                <div class="report-body">
-                    ${formattedReport}
-                <\x2Fdiv>
-            <\x2Fbody>
-            <\x2Fhtml>
-            `;
-
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `FIRO_B_Report_${dateStr.replace(/\//g, '-')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        // Initialize
-        loadQuestions();
-        </script>
-    </body>
+    loadQuestions();
+</script>
+</body>
 </html>

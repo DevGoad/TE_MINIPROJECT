@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+/* ============================================================
+   FIRO-B® TEAM ANALYSIS REPORT TEMPLATE
+   Each section lives in its own .page div (210mm × A4).
+   Placeholders replaced by team_analyzer.render_team_report().
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: Arial, 'Helvetica Neue', sans-serif;
+    font-size: 10.5pt;
+    color: #222;
+    background: #c0c0c0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* ── PAGE SHELL ─────────────────────────────────────────────── */
+.page {
+    background: white;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 8mm auto;
+    padding: 14mm 18mm 16mm 18mm;
+    position: relative;
+    box-shadow: 0 2px 14px rgba(0,0,0,.28);
+    /* overflow visible so content can be measured but won't bleed in print */
+}
+
+/* ── PRINT RULES ────────────────────────────────────────────── */
+@media print {
+    body { background: white; margin: 0; }
+
+    .page {
+        width: 210mm;
+        min-height: 0;           /* let page natural-size in print */
+        margin: 0;
+        padding: 14mm 18mm 16mm 18mm;
+        box-shadow: none;
+        page-break-before: always;
+        break-before: page;
+    }
+    .page:first-child {
+        page-break-before: avoid;
+        break-before: avoid;
+    }
+
+    @page { size: A4; margin: 0; }
+
+    /* ── Prevent mid-element breaks ── */
+    .sec-hdr        { break-after: avoid;   page-break-after: avoid; }
+    .ms             { break-inside: avoid;  page-break-inside: avoid; }
+    .ai p           { break-inside: avoid;  page-break-inside: avoid; }
+    .ai h4          { break-after: avoid;   page-break-after: avoid; }
+    .ai ul          { break-inside: avoid;  page-break-inside: avoid; }
+    .ai ul li       { break-inside: avoid;  page-break-inside: avoid; }
+    .ai ul li.lh    { break-inside: avoid;  page-break-inside: avoid;
+                      break-after: avoid;   page-break-after: avoid; }
+    .mc             { break-inside: avoid;  page-break-inside: avoid; }
+    .mg             { break-inside: avoid;  page-break-inside: avoid; }
+    .toc-row        { break-inside: avoid;  page-break-inside: avoid; }
+    .st tr          { break-inside: avoid;  page-break-inside: avoid; }
+    .st thead       { display: table-header-group; }
+    .needs-tbl tr   { break-inside: avoid;  page-break-inside: avoid; }
+}
+
+/* ── RUNNING HEADER ─────────────────────────────────────────── */
+.ph {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: #bbb;
+    padding-bottom: 5px;
+    border-bottom: .5pt solid #e0e0e0;
+    margin-bottom: 14px;
+}
+
+/* ── SECTION HEADER ─────────────────────────────────────────── */
+.sec-hdr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.s-icon  { font-size: 18pt; line-height: 1; flex-shrink: 0; }
+.s-title {
+    font-size: 15pt;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    line-height: 1.1;
+}
+
+/* ── MEMBER CHIPS STRIP ─────────────────────────────────────── */
+.ms { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.ms-chip {
+    font-size: 7.5pt;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* ── AI CONTENT ─────────────────────────────────────────────── */
+.ai { font-size: 10.5pt; line-height: 1.65; }
+.ai p { margin-bottom: 9px; color: #333; }
+.ai strong { font-weight: 700; }
+.ai h4 {
+    font-size: 10pt;
+    font-weight: 700;
+    margin: 14px 0 5px 0;
+    padding-bottom: 2px;
+    border-bottom: .5pt solid #e8e0f0;
+}
+.ai ul { list-style: none; padding: 0; margin: 4px 0 10px 0; }
+.ai ul li {
+    display: block;
+    padding: 5px 0 5px 20px;
+    position: relative;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    margin-bottom: 4px;
+    color: #333;
+}
+.ai ul li::before {
+    content: "•";
+    font-size: 12pt;
+    line-height: 1.3;
+    position: absolute;
+    left: 0;
+    top: 5px;
+}
+/* Bold sub-topic heading bullets */
+.ai ul li.lh {
+    border-left: 3px solid;
+    border-radius: 3px;
+    padding: 5px 10px 5px 9px;
+    margin: 10px 0 4px 0;
+    font-weight: 600;
+    display: block;
+}
+.ai ul li.lh::before { display: none; }
+.ai ul li.lh strong  { font-size: 10.5pt; }
+.ai ul li > strong:first-child { font-weight: 700; }
+
+/* ── SCORE BARS ─────────────────────────────────────────────── */
+.sb-val  { font-weight: 700; font-size: 9pt; min-width: 14px; display: inline-block; text-align: right; }
+.sb-wrap {
+    display: inline-block; width: 36px; height: 5px;
+    background: #e0e0e0; border-radius: 3px; vertical-align: middle;
+    margin: 0 3px; position: relative; overflow: hidden;
+}
+.sb-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.sb-lbl  { font-size: 6.5pt; color: #999; font-weight: 600; text-transform: uppercase; }
+
+/* ── MEMBER CARDS ───────────────────────────────────────────── */
+.mg { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 14px 0; }
+.mc { border: .5pt solid #ddd; border-radius: 8px; overflow: hidden; font-size: 8pt; }
+.mc-top {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; color: white;
+}
+.mc-let  { font-size: 22pt; font-weight: 900; line-height: 1; opacity: .9; width: 28px; flex-shrink: 0; }
+.mc-info { flex: 1; }
+.mc-name { font-size: 9.5pt; font-weight: 700; line-height: 1.2; }
+.mc-sub  { font-size: 6.5pt; opacity: .85; margin-top: 2px; }
+.mc-ov   { text-align: center; flex-shrink: 0; }
+.mc-ov-n { font-size: 18pt; font-weight: 900; line-height: 1; }
+.mc-ov-l { font-size: 6pt; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+.mc-body { padding: 9px 10px; }
+.mc-row  { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 7.5pt; }
+.mc-rl   { font-weight: 700; font-size: 7pt; width: 52px; flex-shrink: 0; }
+.mc-rs   { flex: 1; color: #444; }
+.mc-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.mc-chip { font-size: 6pt; padding: 2px 6px; border: .75pt solid; border-radius: 10px; font-weight: 600; }
+
+/* ── COVER ──────────────────────────────────────────────────── */
+.cb  { background: #5c2d82; height: 10px; width: calc(100% + 36mm); margin: 0 -18mm; }
+.ct  { margin-top: 16px; }
+.ct h1 { font-size: 26pt; font-weight: 900; color: #111; }
+.ct h2 { font-size: 20pt; font-weight: 700; color: #5c2d82; line-height: 1.2; margin-top: 4px; }
+.ct p  { font-size: 10.5pt; font-weight: 600; color: #7d9800; margin-top: 5px; }
+.cr    { margin: 12px 0; }
+.cr .r1 { height: 8px; background: #5c2d82; }
+.cr .r2 { height: 3px; background: #7d9800; margin-top: 3px; }
+.cm { text-align: right; margin-top: 18px; font-size: 9pt; color: #888; }
+.cm p { margin-bottom: 8px; line-height: 1.5; }
+.cm strong { color: #222; font-size: 10pt; display: block; }
+.cd {
+    position: absolute; bottom: 14mm; left: 18mm; right: 18mm;
+    font-size: 6pt; color: #bbb; line-height: 1.6;
+}
+
+/* ── TABLE OF CONTENTS ──────────────────────────────────────── */
+.toc-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: .5pt solid #eee; font-size: 10pt;
+}
+.toc-row:last-child { border-bottom: none; }
+.ti { font-size: 12pt; width: 22px; text-align: center; flex-shrink: 0; }
+.tt { flex: 1; color: #333; }
+.tp { font-size: 8pt; color: #bbb; }
+
+/* ── SCORE TABLE (contents page) ───────────────────────────── */
+.st { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 9pt; }
+.st th {
+    background: #5c2d82; color: white; padding: 6px 8px;
+    text-align: left; font-size: 8pt;
+}
+.st td { padding: 6px 8px; border-bottom: .5pt solid #eee; vertical-align: middle; }
+.st tr:nth-child(even) td { background: #fafafa; }
+.st tr:last-child td { border-bottom: none; }
+.tc { text-align: center !important; }
+.sh { font-size: 7pt; color: rgba(255,255,255,.75); font-weight: 400; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PAGE 1 — COVER
+     Placeholders: {{LABEL}} {{TEAM_TYPE}} {{DATE_STR}} {{N}}
+                   {{MEMBER_CARDS}} {{NAMES_STR}}
+     ============================================================ -->
+<div class="page" id="cover">
+  <div class="cb"></div>
+  <div class="ct">
+    <h1><sup style="font-size:13pt;">®</sup></h1>
+    <h2>Team Compatibility<br>Analysis Report</h2>
+    <p>Fundamental Interpersonal Relations Orientation — Behavioral</p>
+  </div>
+  <div class="cr"><div class="r1"></div><div class="r2"></div></div>
+  <div class="cm">
+    <p><span style="font-size:7.5pt;color:#aaa;">Team / Project</span><strong>{{LABEL}}</strong></p>
+    <p><span style="font-size:7.5pt;color:#aaa;">Context</span><strong>{{TEAM_TYPE}}</strong></p>
+    <p><span style="font-size:7.5pt;color:#aaa;">Report Generated</span><strong>{{DATE_STR}}</strong></p>
+    <p><span style="font-size:7.5pt;color:#aaa;">Members Analysed</span><strong>{{N}}</strong></p>
+  </div>
+  <div class="mg">{{MEMBER_CARDS}}</div>
+  <div class="cd">
+    This Team Analysis Report is generated for educational and developmental purposes only.
+    Behavioural interpretations are based on self-reported psychometric data and should be treated as
+    indicative, not prescriptive. Do not make final personnel decisions based solely on this report.
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE 2 — CONTENTS
+     Placeholders: {{LABEL}} {{N}} {{NAMES_STR}} {{TEAM_TYPE}}
+                   {{SCORE_ROWS}} {{TOC_ROWS}}
+     ============================================================ -->
+<div class="page" id="contents">
+  <div class="ph">
+    <span>Team Analysis Report — {{LABEL}}</span>
+    <span>Contents | Page 2</span>
+  </div>
+  <div class="sec-hdr">
+    <span class="s-icon">📑</span>
+    <span class="s-title" style="color:#5c2d82;">Contents</span>
+  </div>
+  <p style="font-size:10pt;color:#555;line-height:1.6;margin-bottom:12px;">
+    This report analyses the interpersonal profiles of <strong>{{N}} team members</strong>
+    ({{NAMES_STR}}) collaborating on a <strong>{{TEAM_TYPE}}</strong>.
+    The AI psychometrician has assessed behavioural compatibility, identified potential friction,
+    and recommended role distribution based on validated interpretive criteria.
+  </p>
+  <table class="st">
+    <thead>
+      <tr>
+        <th></th><th>Name</th>
+        <th class="tc">Inclusion<span class="sh">Exp / Want</span></th>
+        <th class="tc">Control<span class="sh">Exp / Want</span></th>
+        <th class="tc">Affection<span class="sh">Exp / Want</span></th>
+        <th class="tc">Overall</th>
+      </tr>
+    </thead>
+    <tbody>{{SCORE_ROWS}}</tbody>
+  </table>
+  <div style="margin-top:14px;">{{TOC_ROWS}}</div>
+</div>
+
+<!-- ============================================================
+     SECTION PAGES 3–10
+     Each section is its own .page div injected by Python.
+     Placeholder: {{SECTION_PAGES}}
+     ============================================================ -->
+{{SECTION_PAGES}}
+
+</body>
+</html>

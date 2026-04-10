@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Analysis</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            text-decoration: none; color: #5c2d82; font-size: 0.9em;
+            font-weight: 600; margin-bottom: 20px;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        h1 { color: #2c3e50; font-size: 1.8rem; margin-bottom: 4px; }
+        .subtitle { color: #666; font-size: 0.96rem; margin-bottom: 28px; }
+
+        .card {
+            background: white;
+            padding: 24px 28px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+            margin-bottom: 22px;
+        }
+        .card h2 {
+            font-size: 1.1rem; font-weight: 700; color: #5c2d82;
+            margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+        }
+        .card h2 span.num {
+            background: #5c2d82; color: white; width: 24px; height: 24px;
+            border-radius: 50%; font-size: 0.8rem; display: inline-flex;
+            align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        /* ── Form fields ── */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-weight: 600; font-size: 0.9em; color: #2c3e50; }
+        input[type="text"], select {
+            padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 0.97em; background: #fafafa; transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, select:focus {
+            outline: none; border-color: #5c2d82; background: white;
+        }
+
+        /* ── Member upload slots ── */
+        .members-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .member-slot {
+            border: 2px dashed #d0c0e8;
+            border-radius: 10px;
+            padding: 18px;
+            background: #faf8ff;
+            transition: border-color 0.2s, background 0.2s;
+            position: relative;
+        }
+        .member-slot.filled {
+            border-style: solid;
+            border-color: #5c2d82;
+            background: #f2ecfb;
+        }
+        .member-slot .slot-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .member-slot .slot-label {
+            font-weight: 700; font-size: 0.9em; color: #5c2d82;
+        }
+        .member-slot .slot-badge {
+            font-size: 0.7em; background: #ede8f5; color: #5c2d82;
+            padding: 2px 8px; border-radius: 10px; font-weight: 600;
+        }
+        .member-slot .slot-badge.required { background: #fce8e8; color: #c02020; }
+
+        .member-slot input[type="text"] {
+            width: 100%; margin-bottom: 10px;
+        }
+
+        .file-drop {
+            border: 1.5px dashed #bbb;
+            border-radius: 6px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            transition: border-color 0.2s, background 0.2s;
+            font-size: 0.85em;
+            color: #999;
+        }
+        .file-drop:hover { border-color: #5c2d82; color: #5c2d82; background: #faf8ff; }
+        .file-drop.has-file { border-color: #2d7d32; color: #2d7d32; background: #f0faf0; }
+        .file-drop input[type="file"] { display: none; }
+
+        .remove-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: none; border: none; cursor: pointer;
+            color: #bbb; font-size: 1.1em; padding: 2px;
+            display: none;
+        }
+        .member-slot.filled .remove-btn { display: block; color: #c02020; }
+
+        /* ── Min/max note ── */
+        .member-note {
+            font-size: 0.82em; color: #888; margin-top: 12px; text-align: center;
+        }
+
+        /* ── Submit button ── */
+        button#analyse-btn {
+            width: 100%; padding: 16px; border: none; border-radius: 8px;
+            font-size: 1.15em; font-weight: 700; color: white;
+            background: linear-gradient(135deg, #5c2d82, #8e44ad);
+            cursor: pointer; transition: opacity 0.2s;
+        }
+        button#analyse-btn:hover { opacity: 0.88; }
+        button#analyse-btn:disabled { background: #bdc3c7; cursor: not-allowed; opacity: 1; }
+
+        #status-msg {
+            text-align: center; margin-top: 14px; font-size: 0.95em;
+            color: #5c2d82; min-height: 22px;
+        }
+        #status-msg.error { color: #c02020; }
+
+        /* ── Progress bar ── */
+        .progress-wrap {
+            background: #e0e0e0; border-radius: 4px;
+            height: 6px; overflow: hidden; margin-top: 10px; display: none;
+        }
+        .progress-bar {
+            height: 100%; background: linear-gradient(90deg, #5c2d82, #7d9800);
+            width: 0%; transition: width 0.4s;
+            animation: indeterminate 1.6s linear infinite;
+        }
+        @keyframes indeterminate {
+            0%   { margin-left: -60%; width: 60%; }
+            100% { margin-left: 110%; width: 60%; }
+        }
+    </style>
+</head>
+<body>
+
+    <a class="back-link" href="landing.html">← Back to Start</a>
+
+    <h1>👥 Team Report Analysis</h1>
+    <p class="subtitle">
+        Upload 2–4 individual personality assessment reports. The AI will analyse team compatibility,
+        identify conflict zones, and recommend role distribution.
+    </p>
+
+    <!-- Card 1: Team Info -->
+    <div class="card">
+        <h2><span class="num">1</span> Team Information</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="team-name">Team / Project Name</label>
+                <input type="text" id="team-name" placeholder="e.g. Marketing Strategy Group">
+            </div>
+            <div class="form-group">
+                <label for="team-type">Team Context *</label>
+                <select id="team-type" required>
+                    <option value="">— Select —</option>
+                    <option>Group Projects</option>
+                    <option>Live Projects</option>
+                    <option>Committee Work</option>
+                    <option>Case Competition Teams</option>
+                    <option>Other</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Upload Members -->
+    <div class="card">
+        <h2><span class="num">2</span> Upload Member Reports</h2>
+
+        <div class="members-grid" id="members-grid">
+
+            <!-- Member A — required -->
+            <div class="member-slot" id="slot-0">
+                <button class="remove-btn" onclick="clearSlot(0)" title="Remove">✕</button>
+                <div class="slot-header">
+                    <span class="slot-label">Member A</span>
+                    <span class="slot-badge required">Required</span>
+                </div>
+                <input type="text" id="name-0" placeholder="Member's name">
+                <div class="file-drop" id="drop-0" onclick="document.getElementById('file-0').click()">
+                    <input type="file" id="file-0" accept=".pdf" onchange="handleFile(0, this)">
+                    📂 Click to upload PDF report
+                </div>
+            </div>
+
+            <!-- Member B — required -->
+            <div class="member-slot" id="slot-1">
+                <button class="remove-btn" onclick="clearSlot(1)" title="Remove">✕</button>
+                <div class="slot-header">
+                    <span class="slot-label">Member B</span>
+                    <span class="slot-badge required">Required</span>
+                </div>
+                <input type="text" id="name-1" placeholder="Member's name">
+                <div class="file-drop" id="drop-1" onclick="document.getElementById('file-1').click()">
+                    <input type="file" id="file-1" accept=".pdf" onchange="handleFile(1, this)">
+                    📂 Click to upload PDF report
+                </div>
+            </div>
+
+            <!-- Member C — optional -->
+            <div class="member-slot" id="slot-2">
+                <button class="remove-btn" onclick="clearSlot(2)" title="Remove">✕</button>
+                <div class="slot-header">
+                    <span class="slot-label">Member C</span>
+                    <span class="slot-badge">Optional</span>
+                </div>
+                <input type="text" id="name-2" placeholder="Member's name">
+                <div class="file-drop" id="drop-2" onclick="document.getElementById('file-2').click()">
+                    <input type="file" id="file-2" accept=".pdf" onchange="handleFile(2, this)">
+                    📂 Click to upload PDF report
+                </div>
+            </div>
+
+            <!-- Member D — optional -->
+            <div class="member-slot" id="slot-3">
+                <button class="remove-btn" onclick="clearSlot(3)" title="Remove">✕</button>
+                <div class="slot-header">
+                    <span class="slot-label">Member D</span>
+                    <span class="slot-badge">Optional</span>
+                </div>
+                <input type="text" id="name-3" placeholder="Member's name">
+                <div class="file-drop" id="drop-3" onclick="document.getElementById('file-3').click()">
+                    <input type="file" id="file-3" accept=".pdf" onchange="handleFile(3, this)">
+                    📂 Click to upload PDF report
+                </div>
+            </div>
+
+        </div>
+        <p class="member-note">Minimum 2 members required · Maximum 4 members</p>
+    </div>
+
+    <!-- Analyse button -->
+    <button id="analyse-btn" onclick="runAnalysis()">
+        🔍 Analyse Team Compatibility
+    </button>
+    <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div id="status-msg"></div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+    const fileStore = [null, null, null, null];   // File objects
+
+    function handleFile(idx, input) {
+        const file = input.files[0];
+        if (!file) return;
+        fileStore[idx] = file;
+        const drop = document.getElementById(`drop-${idx}`);
+        drop.classList.add('has-file');
+        drop.innerHTML = `<input type="file" id="file-${idx}" accept=".pdf" onchange="handleFile(${idx}, this)" style="display:none;">
+                          ✅ ${file.name}`;
+        document.getElementById(`slot-${idx}`).classList.add('filled');
+    }
+
+    function clearSlot(idx) {
+        fileStore[idx] = null;
+        document.getElementById(`slot-${idx}`).classList.remove('filled');
+        const drop = document.getElementById(`drop-${idx}`);
+        drop.classList.remove('has-file');
+        drop.innerHTML = `<input type="file" id="file-${idx}" accept=".pdf" onchange="handleFile(${idx}, this)" style="display:none;">
+                          📂 Click to upload PDF report`;
+        document.getElementById(`name-${idx}`).value = '';
+    }
+
+    async function runAnalysis() {
+        const teamType = document.getElementById('team-type').value;
+        const teamName = document.getElementById('team-name').value.trim();
+
+        if (!teamType) {
+            alert("Please select a Team Context.");
+            return;
+        }
+
+        // Collect uploaded files and names
+        const uploadedFiles  = [];
+        const memberNames    = [];
+        const requiredSlots  = [0, 1];
+
+        for (let i = 0; i < 4; i++) {
+            if (fileStore[i]) {
+                uploadedFiles.push(fileStore[i]);
+                memberNames.push(document.getElementById(`name-${i}`).value.trim() || `Member ${String.fromCharCode(65+i)}`);
+            } else if (requiredSlots.includes(i)) {
+                alert(`Member ${String.fromCharCode(65+i)} is required. Please upload their report.`);
+                return;
+            }
+        }
+
+        if (uploadedFiles.length < 2) {
+            alert("Please upload at least 2 member reports.");
+            return;
+        }
+
+        // UI: loading state
+        const btn    = document.getElementById('analyse-btn');
+        const status = document.getElementById('status-msg');
+        const prog   = document.getElementById('progress-wrap');
+
+        btn.disabled      = true;
+        btn.textContent   = "⏳ Analysing…";
+        status.className  = '';
+        status.textContent = "This may take 30–60 seconds…";
+        prog.style.display = 'block';
+
+        try {
+            const formData = new FormData();
+            uploadedFiles.forEach(f => formData.append('files', f));
+            formData.append('names',     JSON.stringify(memberNames));
+            formData.append('team_name', teamName);
+            formData.append('team_type', teamType);
+
+            const response = await fetch(`${API_URL}/team-analysis`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(err);
+            }
+
+            const data = await response.json();
+            const html = data.rendered_html;
+
+            // Open in new tab
+            const blob = new Blob([html], { type: 'text/html' });
+            const url  = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+            status.textContent = "✅ Team analysis opened in a new tab! (Ctrl+P to save as PDF)";
+
+        } catch (err) {
+            console.error(err);
+            status.className  = 'error';
+            status.textContent = "❌ Analysis failed: " + err.message;
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = "🔍 Analyse Team Compatibility";
+            prog.style.display = 'none';
+        }
+    }
+</script>
+</body>
+</html>
